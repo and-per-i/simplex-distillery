@@ -13,7 +13,31 @@ from models.student_model import StudentForCausalLM, StudentConfig
 from distillation.kd_trainer import KDTrainer
 from tokenizer.hf_tokenizer import load_tokenizer
 
-def load_teacher_model(ckpt_path, device="cuda"):
+def get_optimal_config():
+    if not torch.cuda.is_available():
+        return {"batch_size": 1, "fp16": False, "compile": False, "name": "CPU"}
+    
+    vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+    gpu_name = torch.cuda.get_device_name(0)
+    
+    if vram_gb > 40:
+        batch_size = 256
+    elif vram_gb > 20:
+        batch_size = 128
+    elif vram_gb > 12:
+        batch_size = 64
+    else:
+        batch_size = 16
+        
+    return {
+        "batch_size": batch_size,
+        "fp16": True,
+        "compile": True,
+        "name": gpu_name,
+        "vram": vram_gb
+    }
+
+def load_teacher_model(ckpt_path, device="cuda", use_compile=True):
     print(f"Loading Teacher from {ckpt_path}...")
     params = torch.load(os.path.join(ckpt_path, "params.sav"), map_location=device, weights_only=False)
     cfg = torch.load(os.path.join(ckpt_path, "cfg.sav"), map_location=device, weights_only=False)
@@ -23,35 +47,35 @@ def load_teacher_model(ckpt_path, device="cuda"):
     model.to(device)
     model.eval()
     
-    # NOVITÀ: Compilazione per velocità massima
-    try:
-        print("Compiling Teacher model with torch.compile...")
-        model = torch.compile(model)
-    except Exception as e:
-        print(f"⚠️  Torch compile non riuscito (richiede PyTorch 2.0+): {e}")
+    if use_compile:
+        try:
+            print(f"Compiling Teacher model with torch.compile...")
+            model = torch.compile(model)
+        except Exception as e:
+            print(f"⚠️  Torch compile bypassato: {e}")
     
     # Wrapper per allineare gli output
     wrapper = TeacherWrapper(model, student_vocab_size=757)
     return wrapper
 
 def main():
-    # --- Configurazione Cloud ---
+    hw_config = get_optimal_config()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     teacher_ckpt = "/app/Newclid_Transformer/pt_ckpt"
-    output_dir = "./distill_results_cloud"
+    output_dir = f"./distill_results_{hw_config['name'].replace(' ', '_')}"
     
     # Inizializza WandB
-    wandb.init(project="simplex-distillation", name="cloud-run-5090-v2")
+    wandb.init(project="simplex-distillation", name=f"run-{hw_config['name']}-{hw_config['batch_size']}")
 
     # 1. Carica the Teacher
-    teacher = load_teacher_model(teacher_ckpt, device=device)
+    teacher = load_teacher_model(teacher_ckpt, device=device, use_compile=hw_config['compile'])
     
     # 2. Inizializza il Tokenizer
     print("Loading AlphaGeometry Tokenizer...")
     tokenizer = load_tokenizer("/app/simplex-distillery/tokenizer/weights/geometry.757.model")
 
     # 3. Inizializza lo Student (2-Simplicial Attention)
-    print("Initializing Student (2-Simplicial Attention) with Triton support...")
+    print(f"Initializing Student (2-Simplicial) | Batch Size: {hw_config['batch_size']} | FP16: {hw_config['fp16']}")
     # Weight tying disattivato per stabilità salvataggio checkpoint
     config = StudentConfig(
         vocab_size=757,
@@ -85,10 +109,10 @@ def main():
         dummy_data = {"input_ids": [[1]*128]*100, "labels": [[1]*128]*100}
         dataset = Dataset.from_dict(dummy_data)
 
-    # 4. Argomenti di Training (Ottimizzati per 5090)
+    # 4. Argomenti di Training
     training_args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=128, # BATCH SIZE POTENZIATO
+        per_device_train_batch_size=hw_config['batch_size'],
         gradient_accumulation_steps=1,
         num_train_epochs=10,
         learning_rate=1e-4,
@@ -96,7 +120,7 @@ def main():
         logging_steps=10,
         eval_strategy="no",
         save_steps=1000,
-        fp16=True, # Mixed precision per velocità
+        fp16=hw_config['fp16'],
         dataloader_num_workers=4,
         dataloader_pin_memory=True,
         report_to="wandb"
