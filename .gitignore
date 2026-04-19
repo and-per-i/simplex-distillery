@@ -1,0 +1,11 @@
+venv/
+runs/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+*.log
+*.parquet
+distill_results/
+*.log
+ag_ckpt_vocab/

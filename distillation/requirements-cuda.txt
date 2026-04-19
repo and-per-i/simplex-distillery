@@ -1,0 +1,16 @@
+# Dipendenze core aggiornate per CUDA 12 (RTX 5000 series)
+# Blocchiamo JAX a 0.4.35 perché le versioni successive hanno rimosso PositionalSharding
+jax[cuda12]==0.4.35
+flax==0.9.0
+orbax-checkpoint==0.6.4
+
+# Usiamo tensorflow-cpu per evitare che TF occupi la VRAM della GPU,
+# lasciandola tutta disponibile per JAX. SeqIO funziona benissimo su CPU.
+tensorflow-cpu
+seqio
+
+# Data processing
+pandas
+pyarrow
+tqdm
+gin-config
