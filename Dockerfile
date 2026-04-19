@@ -1,5 +1,5 @@
-# Usa un'immagine base con supporto CUDA per la RTX 5090 Ti
-FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
+# Usa un'immagine base con supporto CUDA 11.8 per compatibilità con driver vecchi
+FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 # Evita interazioni durante l'installazione
 ENV DEBIAN_FRONTEND=noninteractive
