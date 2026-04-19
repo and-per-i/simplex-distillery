@@ -36,13 +36,18 @@ class TeacherWrapper(nn.Module):
         self.logits_tuple_idx = logits_tuple_idx
         
         # Determina la dimensione del vocabolario del teacher
-        # Rileva vocab_size del teacher - Forziamo 757 per allineamento perfetto
-        self.teacher_vocab_size = 757
-        print(f"DEBUG: Teacher vocab_size fixed at: {self.teacher_vocab_size}")
+        # Rileva la dimensione REALE dell'output del teacher
+        # Anche se il vocab è 757, AlphaGeometry spesso sputa 1024
+        self.teacher_vocab_size = self._detect_vocab_size()
+        self.student_vocab_size = 757 # Fissato come da tokenizer
+        
+        print(f"DEBUG: Teacher raw output: {self.teacher_vocab_size} | Student vocab: {self.student_vocab_size}")
 
-        # Se le dimensioni coincidono, non serve la projection head (segnale puro!)
-        self.vocab_proj = nn.Identity()
-        print("DEBUG: Using Identity projection (1-to-1 mapping)")
+        # Se il teacher sputa più token dello student (es. 1024 vs 757), 
+        # facciamo uno slicing diretto dei primi 757 token.
+        # È più preciso di una proiezione lineare perché i primi 757 ID sono identici.
+        self.should_truncate = self.teacher_vocab_size > self.student_vocab_size
+        self.vocab_proj = nn.Identity() # Non usiamo pesi da addestrare
 
     def _detect_vocab_size(self) -> int:
         """Prova a inferire la dimensione del vocabolario del teacher."""
@@ -90,7 +95,11 @@ class TeacherWrapper(nn.Module):
         else:
             raise ValueError(f"Impossibile estrarre i logits dall'output del teacher: {type(raw_output)}")
 
-        # --- Proiezione Vocabolario ---
+        # --- Proiezione / Troncamento Vocabolario ---
+        if self.should_truncate:
+            # Slicing dei primi N token (es. prendi i primi 757 da 1024)
+            logits = logits[..., :self.student_vocab_size]
+        
         if self.vocab_proj:
             logits = self.vocab_proj(logits)
 
