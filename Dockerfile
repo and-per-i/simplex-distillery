@@ -20,10 +20,10 @@ RUN pip3 install --no-cache-dir \
     torch \
     torchvision \
     torchaudio \
-    transformers==4.38.0 \
+    transformers>=4.38.0 \
+    accelerate>=0.28.0 \
     datasets \
     pyarrow \
-    accelerate \
     sentencepiece \
     einops \
     triton \
