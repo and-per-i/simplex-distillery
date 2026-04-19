@@ -4,6 +4,7 @@ import torch.nn as nn
 from transformers import TrainingArguments, Trainer
 from datasets import load_dataset, Dataset
 import wandb
+import inspect
 
 # Import dei componenti Newclid e Simplex
 from alphageo.model import Decoder
@@ -14,8 +15,6 @@ from tokenizer.hf_tokenizer import load_tokenizer
 
 def load_teacher_model(ckpt_path, device="cuda"):
     print(f"Loading Teacher from {ckpt_path}...")
-    import torch
-    # Carichiamo i parametri salvati
     params = torch.load(os.path.join(ckpt_path, "params.sav"), map_location=device, weights_only=False)
     cfg = torch.load(os.path.join(ckpt_path, "cfg.sav"), map_location=device, weights_only=False)
     
@@ -37,7 +36,7 @@ def main():
     # Inizializza WandB
     wandb.init(project="simplex-distillation", name="cloud-run-5090")
 
-    # 1. Carica il Teacher
+    # 1. Carica the Teacher
     teacher = load_teacher_model(teacher_ckpt, device=device)
     
     # 2. Inizializza il Tokenizer
@@ -59,29 +58,22 @@ def main():
     dataset_path = os.getenv("DATASET_PATH", "/app/simplex-distillery/train0901-00000-of-00003.parquet")
     
     if os.path.exists(dataset_path):
-        ext = os.path.splitext(dataset_path)[1].lower()
-        if ext == ".parquet":
-            print(f"Loading Parquet dataset from {dataset_path}...")
-            raw_dataset = load_dataset("parquet", data_files=dataset_path, split="train")
-        else:
-            print(f"Loading JSON dataset from {dataset_path}...")
-            raw_dataset = load_dataset("json", data_files=dataset_path, split="train")
+        raw_dataset = load_dataset("parquet", data_files=dataset_path, split="train")
             
         # Tokenizzazione del dataset
-        print("Tokenizing dataset...")
+        print(f"Tokenizing dataset using {os.cpu_count()} processes...")
         def tokenize_function(examples):
             # Concateniamo domanda e soluzione come nel training originale
             full_text = [q + " " + s for q, s in zip(examples["question"], examples["solution"])]
-            return tokenizer(full_text, truncation=True, max_length=1024, padding="max_length")
+            tokenized = tokenizer(full_text, truncation=True, max_length=1024, padding="max_length")
+            tokenized["labels"] = [list(ids) for ids in tokenized["input_ids"]]
+            return tokenized
         
-        dataset = raw_dataset.map(tokenize_function, batched=True, remove_columns=raw_dataset.column_names)
+        dataset = raw_dataset.map(tokenize_function, batched=True, num_proc=os.cpu_count(), remove_columns=raw_dataset.column_names)
         dataset.set_format("torch")
     else:
         print("⚠️ Dataset reale non trovato. Uso dati sintetici dummy per test cloud.")
-        dummy_data = {
-            "input_ids": torch.randint(0, 757, (1000, 128)).tolist(),
-            "labels": torch.randint(0, 757, (1000, 128)).tolist(),
-        }
+        dummy_data = {"input_ids": [[1]*128]*100, "labels": [[1]*128]*100}
         dataset = Dataset.from_dict(dummy_data)
 
     # 4. Argomenti di Training (Ottimizzati per 5090)
