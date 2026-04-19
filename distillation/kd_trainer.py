@@ -173,21 +173,15 @@ class KDTrainer(Trainer):
 
         return (total_loss, student_outputs) if return_outputs else total_loss
 
-    def training_step(
-        self,
-        model: torch.nn.Module,
-        inputs: dict,
-        num_items_in_batch: Optional[int] = None,
-    ) -> torch.Tensor:
+    def training_step(self, model, inputs, *args, **kwargs) -> torch.Tensor:
         """
         Sovrascrive training_step per assicurarsi che il teacher
-        rimanga sempre in eval mode anche durante lo step di training.
+        rimanga sempre in eval mode.
         """
-        # Forza il teacher in eval — ridondante ma difensivo
         if self.teacher is not None:
             if hasattr(self.teacher, "wrapped_teacher") and self.teacher.wrapped_teacher is not None:
                 self.teacher.wrapped_teacher.eval()
             else:
                 self.teacher.eval()
 
-        return super().training_step(model, inputs, num_items_in_batch)
+        return super().training_step(model, inputs, *args, **kwargs)
