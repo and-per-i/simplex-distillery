@@ -1,27 +1,28 @@
-# Usa un'immagine base con supporto CUDA 12.1 per la RTX 5090 Ti
-FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
+# Immagine base snella con CUDA 12.1
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 # Evita interazioni durante l'installazione
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
-# Installa dipendenze di sistema
+# Installa solo il minimo indispensabile del sistema
 RUN apt-get update && apt-get install -y \
     python3.10 \
     python3-pip \
     git \
-    wget \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Imposta la directory di lavoro
 WORKDIR /app
 
-# Copia i requisiti e installa le dipendenze Python
+# Installazione dipendenze Python in un unico colpo per ottimizzare i layer
+# Usiamo versioni bloccate per stabilità
 RUN pip3 install --no-cache-dir \
     torch \
     torchvision \
     torchaudio \
-    transformers>=4.38.0 \
-    accelerate>=0.28.0 \
+    "transformers>=4.38.0" \
+    "accelerate>=0.28.0" \
     datasets \
     pyarrow \
     sentencepiece \
@@ -30,18 +31,16 @@ RUN pip3 install --no-cache-dir \
     wandb \
     scipy
 
-# Copia il codice del Teacher (Newclid_Transformer)
+# Copia solo i file necessari (grazie al .dockerignore escludiamo i gigabyte di troppo)
 COPY Newclid_Transformer /app/Newclid_Transformer
-# Copia il motore simbolico (Newclid)
 COPY Newclid /app/Newclid
-# Copia il codice dello Student (simplex-distillery)
 COPY simplex-distillery /app/simplex-distillery
 
-# Imposta il PYTHONPATH per includere i sorgenti
+# Configurazione ambiente
 ENV PYTHONPATH="/app/simplex-distillery:/app/Newclid_Transformer/src:${PYTHONPATH}"
 
-# Directory per i risultati
+# Crea la directory risultati
 RUN mkdir -p /app/distill_results
 
-# Comando di default: lancia la distillazione massiva
+# Comando di avvio
 CMD ["python3", "/app/simplex-distillery/distillation/run_distill_cloud.py"]
