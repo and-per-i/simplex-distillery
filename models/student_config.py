@@ -50,7 +50,7 @@ class StudentConfig(PretrainedConfig):
         pad_token_id: int = 0,
         bos_token_id: int = 1,
         eos_token_id: int = 2,
-        tie_word_embeddings: bool = True,
+        tie_word_embeddings: bool = False,
         **kwargs,
     ):
         # Validazione critica: il vocab_size determina la shape dei logits.
@@ -78,6 +78,7 @@ class StudentConfig(PretrainedConfig):
             pad_token_id=pad_token_id,
             bos_token_id=bos_token_id,
             eos_token_id=eos_token_id,
+            tie_word_embeddings=tie_word_embeddings,
             **kwargs,
         )
 

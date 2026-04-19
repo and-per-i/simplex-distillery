@@ -284,9 +284,8 @@ class StudentForCausalLM(PreTrainedModel):
         self.lm_head = new_embeddings
 
     def tie_weights(self, **kwargs):
-        """Condivide i pesi tra input embeddings e lm_head (weight tying)."""
-        if self.config.tie_word_embeddings:
-            self.lm_head.weight = self.model.embeddings.token_embeddings.weight
+        """Disabilitato per stabilità salvataggio in questa versione."""
+        pass
 
     def _init_weights(self, module: nn.Module):
         """Inizializzazione standard HuggingFace (necessaria per post_init)."""

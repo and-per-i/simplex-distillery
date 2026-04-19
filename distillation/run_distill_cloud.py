@@ -50,7 +50,8 @@ def main():
         hidden_size=512,
         num_layers=8,
         num_heads=8,
-        use_triton=True  # ATTIVATO PER CLOUD
+        use_triton=True,  # ATTIVATO PER CLOUD
+        tie_word_embeddings=False
     )
     student = StudentForCausalLM(config).to(device)
     
