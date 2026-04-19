@@ -23,6 +23,13 @@ def load_teacher_model(ckpt_path, device="cuda"):
     model.to(device)
     model.eval()
     
+    # NOVITÀ: Compilazione per velocità massima
+    try:
+        print("Compiling Teacher model with torch.compile...")
+        model = torch.compile(model)
+    except Exception as e:
+        print(f"⚠️  Torch compile non riuscito (richiede PyTorch 2.0+): {e}")
+    
     # Wrapper per allineare gli output
     wrapper = TeacherWrapper(model, student_vocab_size=757)
     return wrapper
@@ -34,7 +41,7 @@ def main():
     output_dir = "./distill_results_cloud"
     
     # Inizializza WandB
-    wandb.init(project="simplex-distillation", name="cloud-run-5090")
+    wandb.init(project="simplex-distillation", name="cloud-run-5090-v2")
 
     # 1. Carica the Teacher
     teacher = load_teacher_model(teacher_ckpt, device=device)
@@ -45,12 +52,13 @@ def main():
 
     # 3. Inizializza lo Student (2-Simplicial Attention)
     print("Initializing Student (2-Simplicial Attention) with Triton support...")
+    # Weight tying disattivato per stabilità salvataggio checkpoint
     config = StudentConfig(
         vocab_size=757,
         hidden_size=512,
         num_layers=8,
         num_heads=8,
-        use_triton=True,  # ATTIVATO PER CLOUD
+        use_triton=True,
         tie_word_embeddings=False
     )
     student = StudentForCausalLM(config).to(device)
@@ -80,17 +88,17 @@ def main():
     # 4. Argomenti di Training (Ottimizzati per 5090)
     training_args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=32, # Spingiamo il batch
-        gradient_accumulation_steps=2,
+        per_device_train_batch_size=128, # BATCH SIZE POTENZIATO
+        gradient_accumulation_steps=1,
         num_train_epochs=10,
         learning_rate=1e-4,
         warmup_steps=500,
-        weight_decay=0.01,
         logging_steps=10,
         eval_strategy="no",
         save_steps=1000,
         fp16=True, # Mixed precision per velocità
-        push_to_hub=False,
+        dataloader_num_workers=4,
+        dataloader_pin_memory=True,
         report_to="wandb"
     )
 
