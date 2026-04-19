@@ -6,7 +6,6 @@ from datasets import load_dataset, Dataset
 import wandb
 import inspect
 
-# Import dei componenti Newclid e Simplex
 from alphageo.model import Decoder
 from models.teacher_wrapper import TeacherWrapper
 from models.student_model import StudentForCausalLM, StudentConfig
@@ -15,6 +14,7 @@ from tokenizer.hf_tokenizer import load_tokenizer
 
 def get_optimal_config():
     if not torch.cuda.is_available():
+        print("⚠️  ATTENZIONE: CUDA NON RILEVATA! Lo script girerà su CPU (molto lento).")
         return {"batch_size": 1, "fp16": False, "compile": False, "name": "CPU"}
     
     vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
@@ -41,20 +41,18 @@ def load_teacher_model(ckpt_path, device="cuda", use_compile=True):
     print(f"Loading Teacher from {ckpt_path}...")
     params = torch.load(os.path.join(ckpt_path, "params.sav"), map_location=device, weights_only=False)
     cfg = torch.load(os.path.join(ckpt_path, "cfg.sav"), map_location=device, weights_only=False)
-    
     model = Decoder(cfg)
     model.load_state_dict(params)
     model.to(device)
     model.eval()
     
-    if use_compile:
+    if use_compile and torch.cuda.is_available():
         try:
             print(f"Compiling Teacher model with torch.compile...")
             model = torch.compile(model)
         except Exception as e:
             print(f"⚠️  Torch compile bypassato: {e}")
-    
-    # Wrapper per allineare gli output
+            
     wrapper = TeacherWrapper(model, student_vocab_size=757)
     return wrapper
 
@@ -64,84 +62,55 @@ def main():
     teacher_ckpt = "/app/Newclid_Transformer/pt_ckpt"
     output_dir = f"./distill_results_{hw_config['name'].replace(' ', '_')}"
     
-    # Inizializza WandB
     wandb.init(project="simplex-distillation", name=f"run-{hw_config['name']}-{hw_config['batch_size']}")
-
-    # 1. Carica the Teacher
-    teacher = load_teacher_model(teacher_ckpt, device=device, use_compile=hw_config['compile'])
     
-    # 2. Inizializza il Tokenizer
-    print("Loading AlphaGeometry Tokenizer...")
+    teacher = load_teacher_model(teacher_ckpt, device=device, use_compile=hw_config['compile'])
     tokenizer = load_tokenizer("/app/simplex-distillery/tokenizer/weights/geometry.757.model")
 
-    # 3. Inizializza lo Student (2-Simplicial Attention)
     print(f"Initializing Student (2-Simplicial) | Batch Size: {hw_config['batch_size']} | FP16: {hw_config['fp16']}")
-    # Weight tying disattivato per stabilità salvataggio checkpoint
-    config = StudentConfig(
-        vocab_size=757,
-        hidden_size=512,
-        num_layers=8,
-        num_heads=8,
-        use_triton=True,
-        tie_word_embeddings=False
-    )
+    config = StudentConfig(vocab_size=757, hidden_size=512, num_layers=8, num_heads=8, use_triton=True, tie_word_embeddings=False)
     student = StudentForCausalLM(config).to(device)
     
-    # 4. Carica il Dataset (.parquet o .jsonl)
     dataset_path = os.getenv("DATASET_PATH", "/app/simplex-distillery/train0901-00000-of-00003.parquet")
-    
     if os.path.exists(dataset_path):
         raw_dataset = load_dataset("parquet", data_files=dataset_path, split="train")
-            
-        # Tokenizzazione del dataset
         print(f"Tokenizing dataset using {os.cpu_count()} processes...")
         def tokenize_function(examples):
-            # Concateniamo domanda e soluzione come nel training originale
             full_text = [q + " " + s for q, s in zip(examples["question"], examples["solution"])]
             tokenized = tokenizer(full_text, truncation=True, max_length=1024, padding="max_length")
             tokenized["labels"] = [list(ids) for ids in tokenized["input_ids"]]
             return tokenized
-        
         dataset = raw_dataset.map(tokenize_function, batched=True, num_proc=os.cpu_count(), remove_columns=raw_dataset.column_names)
         dataset.set_format("torch")
     else:
-        print("⚠️ Dataset reale non trovato. Uso dati sintetici dummy per test cloud.")
         dummy_data = {"input_ids": [[1]*128]*100, "labels": [[1]*128]*100}
         dataset = Dataset.from_dict(dummy_data)
 
-    # 4. Argomenti di Training
-    training_args = TrainingArguments(
-        output_dir=output_dir,
-        per_device_train_batch_size=hw_config['batch_size'],
-        gradient_accumulation_steps=1,
-        num_train_epochs=10,
-        learning_rate=1e-4,
-        warmup_steps=500,
-        logging_steps=10,
-        eval_strategy="no",
-        save_steps=1000,
-        fp16=hw_config['fp16'],
-        dataloader_num_workers=4,
-        dataloader_pin_memory=True,
-        report_to="wandb"
-    )
+    # RILEVAMENTO AUTOMATICO eval_strategy vs evaluation_strategy
+    train_args_keys = inspect.signature(TrainingArguments).parameters.keys()
+    eval_key = "eval_strategy" if "eval_strategy" in train_args_keys else "evaluation_strategy"
 
-    # 5. KDTrainer (ONLINE Distillation)
-    trainer = KDTrainer(
-        model=student,
-        teacher_model=teacher,
-        args=training_args,
-        train_dataset=dataset,
-        temperature=4.0,
-        alpha=0.5
-    )
+    args_dict = {
+        "output_dir": output_dir, 
+        "per_device_train_batch_size": hw_config['batch_size'],
+        "gradient_accumulation_steps": 1,
+        "num_train_epochs": 10, 
+        "learning_rate": 1e-4, 
+        "warmup_steps": 500, 
+        "logging_steps": 10,
+        eval_key: "no",
+        "save_steps": 1000, 
+        "fp16": hw_config['fp16'], 
+        "dataloader_num_workers": 4,
+        "dataloader_pin_memory": True,
+        "report_to": "wandb"
+    }
 
-    print("🚀 Inizio Distillazione su Cloud...")
-    trainer.train()
+    training_args = TrainingArguments(**args_dict)
     
-    # Salva il modello finale
+    trainer = KDTrainer(model=student, teacher_model=teacher, args=training_args, train_dataset=dataset)
+    trainer.train()
     trainer.save_model(os.path.join(output_dir, "final_student"))
-    print(f"✅ Distillazione completata. Modello salvato in {output_dir}/final_student")
 
 if __name__ == "__main__":
     main()
