@@ -10,6 +10,7 @@ accelerate>=0.28.0    # necessario per Trainer multi-GPU / MPS
 numpy>=1.24.0
 pandas>=2.0.0
 pyarrow>=12.0.0
+polars>=0.20.0
 # AlphaGeometry / JAX (Necessari per l'estrazione dei logit)
 jax>=0.4.0
 jaxlib>=0.4.0

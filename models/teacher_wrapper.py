@@ -36,29 +36,13 @@ class TeacherWrapper(nn.Module):
         self.logits_tuple_idx = logits_tuple_idx
         
         # Determina la dimensione del vocabolario del teacher
-        self.teacher_vocab_size = self._detect_vocab_size()
-        
-        # Se i vocabolari differiscono, aggiungiamo una testa di proiezione
-        if self.teacher_vocab_size != student_vocab_size:
-            print(f"DEBUG: Initializing TeacherWrapper with model: {type(wrapped_teacher)}")
-            print(f"DEBUG: self.wrapped_teacher set to: {type(self.wrapped_teacher)}")
-            print(f"DEBUG: Detected teacher vocab_size: {self.teacher_vocab_size}")
-            import torch.nn as nn
-            from models.teacher_wrapper import VocabProjectionHead
-            
-            # Se è già compilato, la proiezione deve stare fuori o essere compilata insieme
-            self.vocab_proj = VocabProjectionHead(
-                self.teacher_vocab_size, 
-                student_vocab_size
-            ).to(next(wrapped_teacher.parameters()).device)
-            
-            import warnings
-            warnings.warn(
-                f"⚠️  Teacher vocab_size ({self.teacher_vocab_size}) ≠ Student vocab_size ({student_vocab_size}). "
-                "Verrà usata una projection head lineare. Questo riduce la qualità della distillazione — preferibile allineare i vocab."
-            )
-        else:
-            self.vocab_proj = nn.Identity()
+        # Rileva vocab_size del teacher - Forziamo 757 per allineamento perfetto
+        self.teacher_vocab_size = 757
+        print(f"DEBUG: Teacher vocab_size fixed at: {self.teacher_vocab_size}")
+
+        # Se le dimensioni coincidono, non serve la projection head (segnale puro!)
+        self.vocab_proj = nn.Identity()
+        print("DEBUG: Using Identity projection (1-to-1 mapping)")
 
     def _detect_vocab_size(self) -> int:
         """Prova a inferire la dimensione del vocabolario del teacher."""

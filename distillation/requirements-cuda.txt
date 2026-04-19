@@ -12,5 +12,6 @@ seqio
 # Data processing
 pandas
 pyarrow
+polars
 tqdm
 gin-config

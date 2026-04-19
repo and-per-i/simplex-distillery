@@ -7,5 +7,10 @@ __pycache__/
 *.log
 *.parquet
 distill_results/
-*.log
 ag_ckpt_vocab/
+venv_stable/
+app/
+*.tar.gz
+*.bin
+*.safetensors
+*.sav

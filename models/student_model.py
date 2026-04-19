@@ -22,7 +22,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-from transformers import PreTrainedModel
+from transformers import PreTrainedModel, GenerationMixin
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from .student_config import StudentConfig
@@ -247,7 +247,7 @@ class StudentModel(PreTrainedModel):
         return hidden_states, tuple(all_hidden_states)
 
 
-class StudentForCausalLM(PreTrainedModel):
+class StudentForCausalLM(PreTrainedModel, GenerationMixin):
     """
     Modello Student completo per Causal Language Modeling.
 
@@ -309,6 +309,7 @@ class StudentForCausalLM(PreTrainedModel):
         labels: Optional[torch.Tensor] = None,
         output_hidden_states: bool = False,
         return_dict: bool = True,
+        token_type_ids: Optional[torch.LongTensor] = None,
         **kwargs,
     ) -> Union[CausalLMOutputWithPast, Tuple]:
         """
@@ -355,3 +356,10 @@ class StudentForCausalLM(PreTrainedModel):
             past_key_values=None,
             attentions=None,
         )
+
+    def prepare_inputs_for_generation(self, input_ids, attention_mask=None, **kwargs):
+        """Metodo richiesto da GenerationMixin per l'autoregressive decoding."""
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+        }

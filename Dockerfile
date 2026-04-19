@@ -25,6 +25,7 @@ RUN pip3 install --no-cache-dir \
     "accelerate>=0.28.0" \
     datasets \
     pyarrow \
+    polars \
     sentencepiece \
     einops \
     triton \
