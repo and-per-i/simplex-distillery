@@ -12,6 +12,9 @@ from models.student_model import StudentForCausalLM, StudentConfig
 from distillation.kd_trainer import KDTrainer
 from tokenizer.hf_tokenizer import load_tokenizer
 
+# NOVITÀ: Attiva TF32 per sfruttare i Tensor Core (fondamentale su 4090/5090)
+torch.set_float32_matmul_precision('high')
+
 def get_optimal_config():
     if not torch.cuda.is_available():
         print("⚠️  ATTENZIONE: CUDA NON RILEVATA! Lo script girerà su CPU (molto lento).")
