@@ -21,11 +21,11 @@ def get_optimal_config():
     gpu_name = torch.cuda.get_device_name(0)
     
     if vram_gb > 40:
-        batch_size = 256
-    elif vram_gb > 20:
         batch_size = 128
-    elif vram_gb > 12:
+    elif vram_gb > 20:
         batch_size = 64
+    elif vram_gb > 12:
+        batch_size = 32
     else:
         batch_size = 16
         
