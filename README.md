@@ -1,63 +1,63 @@
 # 🔷 Simplex Distillery
 
-**Simplex Distillery** è un framework avanzato per la **Knowledge Distillation** applicata al ragionamento geometrico. Il progetto mira a distillare la conoscenza di modelli di linguaggio complessi (come AlphaGeometry) in architetture più efficienti basate sulla **2-Simplicial Attention**.
+**Simplex Distillery** is an advanced framework for **Knowledge Distillation** applied to geometric reasoning. The project aims to distill the knowledge of complex language models (such as AlphaGeometry) into more efficient architectures based on **2-Simplicial Attention**.
 
 ---
 
-## 🚀 Panoramica
+## 🚀 Overview
 
-Il sistema è progettato per addestrare uno "Student" (modello compatto con attenzione simpliciale) imitando le performance di un "Teacher" (modello di grandi dimensioni o logit pre-estratti). 
+The system is designed to train a "Student" (a compact model with simplicial attention) by mimicking the performance of a "Teacher" (a large-scale model or pre-extracted logits).
 
-### Caratteristiche Principali:
-- 🧠 **2-Simplicial Attention**: Architettura custom ottimizzata per catturare relazioni geometriche complesse.
-- ⚗️ **Distillazione Offline/Online**: Supporto per distillazione real-time tramite Teacher model o tramite logit estratti (Parquet).
-- 🍎 **Ottimizzazione Apple Silicon**: Supporto nativo per accelerazione MPS (Metal Performance Shaders).
-- 📏 **Tokenizer AlphaGeometry**: Integrazione nativa con il vocabolario SentencePiece a 757 token.
-- 🏗️ **HF Ecosystem**: Pienamente compatibile con HuggingFace `Trainer`, `PretrainedConfig` e `PreTrainedModel`.
+### Key Features:
+- 🧠 **2-Simplicial Attention**: A custom architecture optimized for capturing complex geometric relationships.
+- ⚗️ **Offline/Online Distillation**: Support for real-time distillation via a Teacher model or via pre-extracted logits (Parquet).
+- 🍎 **Apple Silicon Optimization**: Native support for MPS (Metal Performance Shaders) acceleration.
+- 📏 **AlphaGeometry Tokenizer**: Native integration with the 757-token SentencePiece vocabulary.
+- 🏗️ **HF Ecosystem**: Fully compatible with HuggingFace `Trainer`, `PretrainedConfig`, and `PreTrainedModel`.
 
 ---
 
-## 📂 Struttura del Progetto
+## 📂 Project Structure
 
 ```text
 .
-├── data/               # Gestione dataset e data collator custom
-├── distillation/       # Core logic della Knowledge Distillation (KDTrainer, KDloss)
-├── models/             # Definizioni dello Student (2-Simplex) e Teacher Wrapper
-├── tokenizer/          # Integrazione con il tokenizer di AlphaGeometry
-├── train.py            # Entry point principale per l'addestramento
-├── inference_test.py   # Script per testare le performance del modello
-└── master_setup.sh     # Script di setup per ambienti cloud/locali
+├── data/               # Dataset management and custom data collators
+├── distillation/       # Core Knowledge Distillation logic (KDTrainer, KDloss)
+├── models/             # Student (2-Simplex) and Teacher Wrapper definitions
+├── tokenizer/          # Integration with the AlphaGeometry tokenizer
+├── train.py            # Main entry point for training
+├── inference_test.py   # Script for testing model performance
+└── master_setup.sh     # Setup script for cloud/local environments
 ```
 
 ---
 
-## 🛠️ Installazione
+## 🛠️ Installation
 
-1. **Clona il repository**:
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/and-per-i/simplex-distillery.git
    cd simplex-distillery
    ```
 
-2. **Crea l'ambiente virtuale**:
+2. **Create a virtual environment**:
    ```bash
    python -m venv venv
    source venv/bin/activate
    ```
 
-3. **Installa le dipendenze**:
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
 ---
 
-## 🏋️ Addestramento & Distillazione
+## 🏋️ Training & Distillation
 
-Il comando principale per avviare la distillazione è `train.py`.
+The main command to start the distillation process is `train.py`.
 
-### Esempio: Distillazione Online con GPT-2 come Teacher
+### Example: Online Distillation with GPT-2 as Teacher
 ```bash
 python train.py \
     --teacher gpt2 \
@@ -69,7 +69,7 @@ python train.py \
     --per_device_train_batch_size 8
 ```
 
-### Esempio: Distillazione Offline (da Parquet con logit pre-calcolati)
+### Example: Offline Distillation (from Parquet with pre-calculated logits)
 ```bash
 python train.py \
     --data_path train0901.parquet \
@@ -79,14 +79,14 @@ python train.py \
 
 ---
 
-## 🧪 Testing & Inferenza
+## 🧪 Testing & Inference
 
-Dopo l'addestramento, puoi verificare il modello con:
+After training, you can verify the model using:
 ```bash
 python inference_test.py --model_path runs/kd_v1 --prompt "a b c coll a b c ;"
 ```
 
 ---
 
-## ⚖️ Licenza
-Questo progetto è sviluppato per scopi di ricerca nel campo dell'intelligenza geometrica. Consultare il file `LICENSE` per ulteriori dettagli.
+## ⚖️ License
+This project is developed for research purposes in the field of geometric intelligence.
