@@ -94,29 +94,39 @@ def run_pro_inference(prompt, model_path, tokenizer_path):
     print("==================================================\n")
 
 if __name__ == "__main__":
-    MODEL_DIR = "./student_v1"
-    TOKENIZER_FILE = "./tokenizer/weights/geometry.757.model"
+    import argparse
+    parser = argparse.ArgumentParser(description="Inference Test for Simplex Distillery")
+    parser.add_argument("--model_path", type=str, default="./student_v1", help="Path to the trained model directory")
+    parser.add_argument("--tokenizer_path", type=str, default="./tokenizer/weights/geometry.757.model", help="Path to the tokenizer model file")
+    parser.add_argument("--prompt", type=str, default=None, help="Prompt for generation. If None, enters interactive mode.")
+    args = parser.parse_args()
 
-    # Tre test di "livello superiore":
-    theorems = [
-        # 1. Teorema di Talete / Proporzionalità
-        "a b c = triangle a b c; d = midpoint a b; e = midpoint a c; ? parallel d e b c",
-        
-        # 2. Angoli alla circonferenza (Classico AlphaGeometry)
-        "a b c d = circle a b c d; ? cong angle a c b angle a d b",
-        
-        # 3. Ortocentro
-        "a b c = triangle a b c; h1 = altitude a b c; h2 = altitude b a c; h = intersection h1 h2; ? perpendicular c h a b"
-    ]
+    MODEL_DIR = args.model_path
+    TOKENIZER_FILE = args.tokenizer_path
 
-    print("Scegli un test:")
-    for i, t in enumerate(theorems): print(f"{i+1}. {t}")
-    
-    choice = input("\nInserisci il numero o scrivi un nuovo prompt: ")
-    
-    if choice.isdigit() and 1 <= int(choice) <= len(theorems):
-        prompt = theorems[int(choice)-1]
+    if args.prompt:
+        prompt = args.prompt
     else:
-        prompt = choice if choice else theorems[0]
+        # Tre test di "livello superiore":
+        theorems = [
+            # 1. Teorema di Talete / Proporzionalità
+            "a b c = triangle a b c; d = midpoint a b; e = midpoint a c; ? parallel d e b c",
+            
+            # 2. Angoli alla circonferenza (Classico AlphaGeometry)
+            "a b c d = circle a b c d; ? cong angle a c b angle a d b",
+            
+            # 3. Ortocentro
+            "a b c = triangle a b c; h1 = altitude a b c; h2 = altitude b a c; h = intersection h1 h2; ? perpendicular c h a b"
+        ]
+
+        print("Scegli un test:")
+        for i, t in enumerate(theorems): print(f"{i+1}. {t}")
+        
+        choice = input("\nInserisci il numero o scrivi un nuovo prompt (invio per il primo): ")
+        
+        if choice.isdigit() and 1 <= int(choice) <= len(theorems):
+            prompt = theorems[int(choice)-1]
+        else:
+            prompt = choice if choice else theorems[0]
 
     run_pro_inference(prompt, MODEL_DIR, TOKENIZER_FILE)

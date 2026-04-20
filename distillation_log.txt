@@ -1,117 +1,0 @@
-/Users/andrea/Documents/simplex-distillery/models/teacher_wrapper.py:103: UserWarning: ⚠️  Teacher vocab_size (1024) ≠ Student vocab_size (757). Verrà usata una projection head lineare. Questo riduce la qualità della distillazione — preferibile allineare i vocab.
-  self.vocab_proj = VocabProjectionHead(
-Loading Teacher from /Users/andrea/Documents/Newclid_Transformer/pt_ckpt...
-DEBUG: Initializing TeacherWrapper with model: <class 'alphageo.model.Decoder'>
-DEBUG: self.wrapped_teacher set to: <class 'alphageo.model.Decoder'>
-DEBUG: Detected teacher vocab_size: 1024
-Initializing Student (2-Simplicial Attention)...
-Starting Distillation...
-  0%|          | 0/3 [00:00<?, ?it/s]/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/torch/utils/data/dataloader.py:775: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
-  super().__init__(loader)
-                                       0%|          | 0/3 [00:01<?, ?it/s]                                       0%|          | 0/3 [00:07<?, ?it/s]                                       0%|          | 0/3 [00:09<?, ?it/s]                                       0%|          | 0/3 [00:12<?, ?it/s] 33%|███▎      | 1/3 [00:13<00:27, 13.71s/it]                                              33%|███▎      | 1/3 [00:13<00:27, 13.71s/it]                                              33%|███▎      | 1/3 [00:14<00:27, 13.71s/it]                                              33%|███▎      | 1/3 [00:16<00:27, 13.71s/it]                                              33%|███▎      | 1/3 [00:19<00:27, 13.71s/it]                                              33%|███▎      | 1/3 [00:21<00:27, 13.71s/it] 67%|██████▋   | 2/3 [00:23<00:11, 11.12s/it]                                              67%|██████▋   | 2/3 [00:23<00:11, 11.12s/it]                                              67%|██████▋   | 2/3 [00:23<00:11, 11.12s/it]                                              67%|██████▋   | 2/3 [00:26<00:11, 11.12s/it]100%|██████████| 3/3 [00:27<00:00,  8.23s/it]                                             100%|██████████| 3/3 [00:27<00:00,  8.23s/it]DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.703', 'kd/kd_loss': '17.43', 'kd/total_loss': '12.07', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': 0}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.749', 'kd/kd_loss': '12.94', 'kd/total_loss': '9.843', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': 0}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.701', 'kd/kd_loss': '13.78', 'kd/total_loss': '10.24', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': 0}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.719', 'kd/kd_loss': '16.83', 'kd/total_loss': '11.78', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': 0}
-{'loss': '43.92', 'grad_norm': '2.24', 'learning_rate': '0.0001', 'epoch': '0.4'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.676', 'kd/kd_loss': '16.78', 'kd/total_loss': '11.73', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.4'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.693', 'kd/kd_loss': '13.74', 'kd/total_loss': '10.22', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.4'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.683', 'kd/kd_loss': '16.19', 'kd/total_loss': '11.44', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.4'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.676', 'kd/kd_loss': '13.49', 'kd/total_loss': '10.08', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.4'}
-{'loss': '43.46', 'grad_norm': '2.269', 'learning_rate': '6.667e-05', 'epoch': '0.8'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.721', 'kd/kd_loss': '15.06', 'kd/total_loss': '10.89', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.8'}
-DEBUG: TeacherWrapper needs projection from torch.Size([1, 128, 1024]) to 757
-DEBUG: VocabProjectionHead input shape: torch.Size([1, 128, 1024])
-DEBUG: VocabProjectionHead output shape: torch.Size([1, 128, 757])
-DEBUG: TeacherWrapper after projection shape: torch.Size([1, 128, 757])
-{'kd/ce_loss': '6.729', 'kd/kd_loss': '19.01', 'kd/total_loss': '12.87', 'kd/temperature': '4', 'kd/alpha': '0.5', 'epoch': '0.8'}
-{'loss': '23.76', 'grad_norm': '1.587', 'learning_rate': '3.333e-05', 'epoch': '1'}
-Traceback (most recent call last):
-  File "/Users/andrea/Documents/simplex-distillery/distillation/run_distill_local.py", line 99, in <module>
-    main()
-    ~~~~^^
-  File "/Users/andrea/Documents/simplex-distillery/distillation/run_distill_local.py", line 95, in main
-    trainer.train()
-    ~~~~~~~~~~~~~^^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 1425, in train
-    return inner_training_loop(
-        args=args,
-    ...<2 lines>...
-        ignore_keys_for_eval=ignore_keys_for_eval,
-    )
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 1507, in _inner_training_loop
-    self._run_epoch(
-    ~~~~~~~~~~~~~~~^
-        model=model,
-        ^^^^^^^^^^^^
-    ...<9 lines>...
-        steps_trained_in_current_epoch=steps_trained_in_current_epoch,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 1776, in _run_epoch
-    self._maybe_log_save_evaluate(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self._tr_loss,
-        ^^^^^^^^^^^^^^
-    ...<6 lines>...
-        learning_rate=learning_rate,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 2089, in _maybe_log_save_evaluate
-    self._save_checkpoint(model, trial)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 3047, in _save_checkpoint
-    self.save_model(output_dir, _internal_call=True)
-    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 3798, in save_model
-    self._save(output_dir)
-    ~~~~~~~~~~^^^^^^^^^^^^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/trainer.py", line 3828, in _save
-    self.model.save_pretrained(output_dir, state_dict=state_dict)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/modeling_utils.py", line 3352, in save_pretrained
-    state_dict = remove_tied_weights_from_state_dict(state_dict, model_to_save)
-  File "/Users/andrea/Documents/Newclid_Transformer/venv_newclid/lib/python3.14/site-packages/transformers/modeling_utils.py", line 463, in remove_tied_weights_from_state_dict
-    raise RuntimeError(
-    ...<3 lines>...
-    )
-RuntimeError: The weights trying to be saved contained shared tensors [{'lm_head.weight', 'model.embeddings.token_embeddings.weight'}] which are not properly defined. We found all the potential target tied weights keys to be: set().
-This can also just mean that the module's tied weight keys are wrong vs the actual tied weights in the model.
-100%|██████████| 3/3 [00:27<00:00,  9.30s/it]
