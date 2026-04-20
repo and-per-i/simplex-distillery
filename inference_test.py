@@ -22,22 +22,76 @@ def run_pro_inference(prompt, model_path, tokenizer_path):
     print(f"\nPROMPT: {prompt}")
     inputs = {k: v.to(device) for k, v in tokenizer(prompt, return_tensors="pt").items()}
 
-    print("Generating proof (Beam Search)...")
+    print("Generating proof (Greedy Search)...")
     with torch.no_grad():
         output_tokens = model.generate(
             **inputs, 
-            max_new_tokens=128,
-            num_beams=5,             # Esplora 5 strade diverse
-            early_stopping=True,
-            no_repeat_ngram_size=2,
+            max_new_tokens=512,
+            do_sample=False,
+            repetition_penalty=1.2,   # Forza il modello a non ripetersi
+            no_repeat_ngram_size=3,    # Impedisce loop di 3 o più token
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id
         )
 
-    solution = tokenizer.decode(output_tokens[0], skip_special_tokens=True)
-    print("\n================ SOLUTION ================")
-    print(solution)
-    print("==========================================\n")
+    # 5. Traduzione "Master"
+    RULE_MAP = {
+        "r00": "Perpendiculars give parallel", "r01": "Definition of cyclic", "r02": "Parallel from inclination",
+        "r03": "Arc determines internal angles", "r04": "Congruent angles are in a cyclic", "r05": "Same arc same chord",
+        "r06": "Base of half triangle", "r07": "Thales Theorem I", "r08": "Right triangles common angle I",
+        "r09": "Sum of angles of a triangle", "r11": "Bisector theorem I", "r13": "Isosceles triangle equal angles",
+        "r14": "Equal base angles imply isosceles", "r15": "Arc determines inscribed angles (tangent)",
+        "r16": "Same arc giving tangent", "r19": "Hypotenuse is diameter", "r20": "Diameter is hypotenuse", 
+        "r25": "Diagonals of parallelogram I", "r27": "Thales theorem II", "r28": "Overlapping parallels", 
+        "r29": "Midpoint Theorem", "r34": "AA Similarity (Direct)", "r42": "Thales theorem IV", 
+        "r43": "Orthocenter theorem", "r51": "Midpoint splits in two", "r54": "Definition of midpoint", 
+        "r57": "Pythagoras theorem", "r72": "Disassembling a circle", "r73": "Definition of circle"
+    }
+    
+    import re
+    # Estraggo i punti dal prompt (es. a, b, c...)
+    initial_points = re.findall(r'\b([a-z])\b', prompt.split('?')[0])
+    POINT_MAP = {}
+    # Mappiamo i primi N indici ai punti del prompt
+    for i, name in enumerate(initial_points):
+        POINT_MAP[str(i)] = name.upper()
+        POINT_MAP[f"{i:02d}"] = name.upper()
+    
+    # Punti ausiliari extra (fino a 50)
+    all_alphabet = "abcdefghijklmnopqrstuvwxyz" + "abcdefghijklmnopqrstuvwxyz".upper()
+    for i in range(len(initial_points), 50):
+        name = all_alphabet[i - len(initial_points)] if (i - len(initial_points)) < len(all_alphabet) else f"P{i}"
+        POINT_MAP[str(i)] = name.upper()
+        POINT_MAP[f"{i:02d}"] = name.upper()
+
+    solution_raw = tokenizer.decode(output_tokens[0], skip_special_tokens=True)
+    raw_tokens = re.findall(r'[a-z0-9]+|;|:', solution_raw.lower())
+    
+    translated_parts = []
+    step_count = 1
+    
+    for t in raw_tokens:
+        t_clean = re.sub(r'[^a-z0-9;:]', '', t)
+        if t_clean in RULE_MAP:
+            translated_parts.append(f"\nSTEP {step_count}: Using {RULE_MAP[t_clean]} on")
+            step_count += 1
+        elif t_clean in POINT_MAP:
+            translated_parts.append(POINT_MAP[t_clean])
+        elif t_clean == ";":
+            translated_parts.append(";")
+        elif t_clean == ":":
+            translated_parts.append(":")
+        elif t_clean.startswith("r") and len(t_clean) > 1:
+            translated_parts.append(f"\nSTEP {step_count}: Using Rule {t_clean.upper()} on")
+            step_count += 1
+        else:
+            translated_parts.append(t_clean.upper())
+            
+    final_proof = " ".join(translated_parts).replace(" ;", ";").replace(" :", ":")
+
+    print("\n================ TRANSLATED PROOF ================")
+    print(final_proof)
+    print("==================================================\n")
 
 if __name__ == "__main__":
     MODEL_DIR = "./student_v1"

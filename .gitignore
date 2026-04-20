@@ -11,6 +11,7 @@ ag_ckpt_vocab/
 venv_stable/
 app/
 *.tar.gz
-*.bin
-*.safetensors
-*.sav
+distill_results*/
+student_v1/
+checkpoint-*/
+tokenizer/weights/*.model
