@@ -5,7 +5,7 @@ __pycache__/
 .DS_Store
 .vscode/
 *.log
-*.parquet
+# *.parquet (tracked by LFS)
 distill_results/
 ag_ckpt_vocab/
 venv_stable/
