@@ -39,7 +39,7 @@ class TeacherWrapper(nn.Module):
         # Rileva la dimensione REALE dell'output del teacher
         # Anche se il vocab è 757, AlphaGeometry spesso sputa 1024
         self.teacher_vocab_size = self._detect_vocab_size()
-        self.student_vocab_size = 757 # Fissato come da tokenizer
+        # self.student_vocab_size = 757 # Rimosso per supportare vocab_size variabile
         
         print(f"DEBUG: Teacher raw output: {self.teacher_vocab_size} | Student vocab: {self.student_vocab_size}")
 

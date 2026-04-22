@@ -56,7 +56,7 @@ def load_teacher_model(ckpt_path, device="cuda", use_compile=True):
         except Exception as e:
             print(f"⚠️  Torch compile bypassato: {e}")
             
-    wrapper = TeacherWrapper(model, student_vocab_size=757)
+    wrapper = TeacherWrapper(model, student_vocab_size=1024)
     return wrapper
 
 def main():
@@ -68,10 +68,10 @@ def main():
     wandb.init(project="simplex-distillation", name=f"run-{hw_config['name']}-{hw_config['batch_size']}")
     
     teacher = load_teacher_model(teacher_ckpt, device=device, use_compile=hw_config['compile'])
-    tokenizer = load_tokenizer("/app/simplex-distillery/tokenizer/weights/geometry.757.model")
+    tokenizer = load_tokenizer("/app/simplex-distillery/tokenizer/weights/geometry.757.model", vocab_size=1024)
 
     print(f"Initializing Student (2-Simplicial) | Batch Size: {hw_config['batch_size']} | FP16: {hw_config['fp16']}")
-    config = StudentConfig(vocab_size=757, hidden_size=512, num_layers=8, num_heads=8, use_triton=True, tie_word_embeddings=False)
+    config = StudentConfig(vocab_size=1024, hidden_size=512, num_layers=8, num_heads=8, use_triton=True, tie_word_embeddings=False)
     student = StudentForCausalLM(config).to(device)
     
     dataset_path = os.getenv("DATASET_PATH", "/app/simplex-distillery/train0901-00000-of-00003.parquet")

@@ -111,12 +111,12 @@ def main():
     tokenizer_path = os.path.join(
         os.path.dirname(__file__), "tokenizer", "weights", "geometry.757.model"
     )
-    tokenizer = load_tokenizer(tokenizer_path)
+    tokenizer = load_tokenizer(tokenizer_path, vocab_size=1024)
     print(f"📝 Tokenizer caricato — vocab_size: {tokenizer.vocab_size}")
 
-    # Sanity check: il vocab_size DEVE essere 757
-    assert tokenizer.vocab_size == 757, (
-        f"Vocab size atteso: 757, trovato: {tokenizer.vocab_size}"
+    # Sanity check: il vocab_size DEVE essere 1024 (Newclid)
+    assert tokenizer.vocab_size == 1024, (
+        f"Vocab size atteso: 1024, trovato: {tokenizer.vocab_size}"
     )
 
     # ------------------------------------------------------------------ #

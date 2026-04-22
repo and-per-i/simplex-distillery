@@ -50,11 +50,13 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
         eos_token: str = "</s>",
         sp_model_kwargs: Optional[Dict] = None,
         add_prefix_space: bool = False,
+        override_vocab_size: Optional[int] = None,
         **kwargs,
     ):
         self.sp_model_kwargs = sp_model_kwargs or {}
         self.vocab_file = vocab_file
         self.add_prefix_space = add_prefix_space
+        self.override_vocab_size = override_vocab_size
 
         # Carica il modello SentencePiece direttamente (no subprocess)
         self.sp_model = spm.SentencePieceProcessor(**self.sp_model_kwargs)
@@ -76,7 +78,9 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
 
     @property
     def vocab_size(self) -> int:
-        """Ritorna 757 per geometry.757.model."""
+        """Ritorna la dimensione del vocabolario (757 o override)."""
+        if self.override_vocab_size:
+            return self.override_vocab_size
         return self.sp_model.GetPieceSize()
 
     def get_vocab(self) -> Dict[str, int]:
@@ -157,6 +161,7 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
 
 def load_tokenizer(
     model_path: str = "tokenizer/weights/geometry.757.model",
+    vocab_size: Optional[int] = None,
 ) -> AlphaGeometryHFTokenizer:
     """
     Carica il tokenizer AlphaGeometry in modalità HF-compatible.
@@ -173,4 +178,4 @@ def load_tokenizer(
             f"Tokenizer model non trovato: {model_path}\n"
             "Verifica che il file geometry.757.model esista."
         )
-    return AlphaGeometryHFTokenizer(vocab_file=model_path)
+    return AlphaGeometryHFTokenizer(vocab_file=model_path, override_vocab_size=vocab_size)

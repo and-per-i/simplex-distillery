@@ -14,8 +14,8 @@ class StudentConfig(PretrainedConfig):
     Configuration class per il modello Student (architettura 2-Simplex Transformer).
 
     Attributi:
-        vocab_size (int): Dimensione del vocabolario. DEVE corrispondere al tokenizer
-                          (geometry.757.model → 757).
+        vocab_size (int): Dimensione del vocabolario. Allineato a Newclid/AlphaGeometry
+                          (default: 1024).
         hidden_size (int): Dimensione degli hidden states del transformer.
         num_hidden_layers (int): Numero di layer Transformer.
         num_attention_heads (int): Numero di teste di attenzione.
@@ -36,7 +36,7 @@ class StudentConfig(PretrainedConfig):
 
     def __init__(
         self,
-        vocab_size: int = 757,          # Allineato al tokenizer AlphaGeometry
+        vocab_size: int = 1024,          # Allineato al vocabolario Newclid/AlphaGeometry
         hidden_size: int = 512,
         num_hidden_layers: int = 6,
         num_attention_heads: int = 8,
