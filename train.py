@@ -36,6 +36,7 @@ from models.student_config import StudentConfig
 from models.student_model import StudentForCausalLM
 from models.teacher_wrapper import TeacherWrapper, load_teacher_from_hf
 from tokenizer.hf_tokenizer import load_tokenizer
+from distillation.pruning_callback import ProgressivePruningCallback
 
 
 # ---------------------------------------------------------------------------
@@ -66,10 +67,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_seq_len", type=int, default=512)
 
     # Modello student
-    parser.add_argument("--hidden_size", type=int, default=512)
-    parser.add_argument("--num_layers", type=int, default=6)
+    parser.add_argument("--hidden_size", type=int, default=384) # 384 come da piano
+    parser.add_argument("--num_layers", type=int, default=12)  # 12 layer da comprimere poi a 6
     parser.add_argument("--num_heads", type=int, default=8)
-    parser.add_argument("--intermediate_size", type=int, default=2048)
+    parser.add_argument("--intermediate_size", type=int, default=1536) # 4 * 384
+    parser.add_argument("--forged_path", type=str, default=None, help="Path al file .pt inizializzato con SVD (Fase 1)")
 
     # KD hyperparameters
     parser.add_argument("--temperature", type=float, default=4.0)
@@ -153,6 +155,13 @@ def main():
     )
     student_model = StudentForCausalLM(student_config)
 
+    # Caricamento pesi forgiati (Fase 1)
+    if args.forged_path and os.path.exists(args.forged_path):
+        print(f"🔨 Caricamento pesi inizializzati (SVD) da: {args.forged_path}")
+        state_dict = torch.load(args.forged_path, map_location="cpu")
+        missing, unexpected = student_model.load_state_dict(state_dict, strict=False)
+        print(f"   Missing keys: {len(missing)} | Unexpected keys: {len(unexpected)}")
+
     n_params = sum(p.numel() for p in student_model.parameters())
     print(f"🎓 Student model: {n_params:,} parametri")
 
@@ -212,6 +221,7 @@ def main():
         train_dataset=train_dataset,
         processing_class=tokenizer,   # transformers 5.x: tokenizer → processing_class
         data_collator=collator,
+        callbacks=[ProgressivePruningCallback()] # Aggiunge Fase 3
     )
 
     # ------------------------------------------------------------------ #

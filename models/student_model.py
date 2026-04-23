@@ -69,9 +69,9 @@ class StudentAttention(nn.Module):
     e il kernel Triton sarà disponibile, questa classe verrà sostituita.
     """
 
-    def __init__(self, config: StudentConfig):
+    def __init__(self, config: StudentConfig, use_simplex: bool = False):
         super().__init__()
-        self.use_simplex_attention = config.use_simplex_attention
+        self.use_simplex_attention = use_simplex
         self.num_heads = config.num_attention_heads
         self.head_dim = config.head_dim
         self.hidden_size = config.hidden_size
@@ -84,7 +84,7 @@ class StudentAttention(nn.Module):
                 out_dim=config.hidden_size,
                 num_heads=config.num_attention_heads,
                 dropout=config.dropout_prob,
-                use_triton_kernel=config.use_simplex_attention,
+                use_triton_kernel=True, # Configurato per training
                 w1=config.w1,
                 w2=config.w2
             )
@@ -169,25 +169,33 @@ class StudentFeedForward(nn.Module):
 class StudentTransformerLayer(nn.Module):
     """
     Un singolo layer Transformer con Pre-LayerNorm (più stabile del Post-LN).
-
-    Pre-LN schema:
-        x = x + Attention(LN(x))
-        x = x + FFN(LN(x))
     """
 
-    def __init__(self, config: StudentConfig):
+    def __init__(self, config: StudentConfig, layer_idx: int):
         super().__init__()
+        self.layer_idx = layer_idx
         self.ln1 = nn.LayerNorm(config.hidden_size, eps=1e-5)
         self.ln2 = nn.LayerNorm(config.hidden_size, eps=1e-5)
-        self.attention = StudentAttention(config)
+        
+        # Determina se questo layer deve essere Simpliciale
+        is_simplex = config.use_simplex_attention and (layer_idx in config.simplex_layers)
+        
+        # Inizializza l'attenzione (standard o simpliciale)
+        self.attention = StudentAttention(config, use_simplex=is_simplex)
+
         self.ffn = StudentFeedForward(config)
         self.resid_dropout = nn.Dropout(config.dropout_prob)
+        self.is_bypassed = False  # Flag per il Progressive Pruning
 
     def forward(
         self,
         hidden_states: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        # Se il layer è bypassed, restituiamo l'input inalterato (identità residuale)
+        if self.is_bypassed:
+            return hidden_states
+
         # Self-attention con residual
         residual = hidden_states
         hidden_states = self.ln1(hidden_states)
@@ -223,7 +231,7 @@ class StudentModel(PreTrainedModel):
         super().__init__(config)
         self.embeddings = StudentEmbeddings(config)
         self.layers = nn.ModuleList(
-            [StudentTransformerLayer(config) for _ in range(config.num_hidden_layers)]
+            [StudentTransformerLayer(config, i) for i in range(config.num_hidden_layers)]
         )
         self.final_ln = nn.LayerNorm(config.hidden_size, eps=1e-5)
         self.post_init()  # chiama _init_weights

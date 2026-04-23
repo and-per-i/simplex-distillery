@@ -69,6 +69,7 @@ class StudentConfig(PretrainedConfig):
         self.max_position_embeddings = max_position_embeddings
         self.dropout_prob = dropout_prob
         self.use_simplex_attention = use_simplex_attention
+        self.simplex_layers = simplex_layers
         self.w1 = w1
         self.w2 = w2
         self.initializer_range = initializer_range
