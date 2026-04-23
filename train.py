@@ -107,6 +107,11 @@ def main():
     )
     print(f"🖥️  Device: {device}")
 
+    # Ottimizzazione specifica per NVIDIA (Ampere/Ada/Blackwell come la 5090)
+    if device == "cuda":
+        torch.set_float32_matmul_precision('high') # Attiva TF32
+        print("🚀 TensorFloat-32 (TF32) attivata per moltiplicazioni matriciali")
+
     # ------------------------------------------------------------------ #
     # 1. Tokenizer
     # ------------------------------------------------------------------ #
@@ -162,6 +167,14 @@ def main():
         missing, unexpected = student_model.load_state_dict(state_dict, strict=False)
         print(f"   Missing keys: {len(missing)} | Unexpected keys: {len(unexpected)}")
 
+    # Ottimizzazione Compilazione (Torch 2.0+)
+    if device == "cuda":
+        print("⚡ Compilazione modello (torch.compile) attivata per performance Blackwell/Ada...")
+        try:
+            student_model = torch.compile(student_model)
+        except Exception as e:
+            print(f"⚠️  Salto compilazione: {e}")
+
     n_params = sum(p.numel() for p in student_model.parameters())
     print(f"🎓 Student model: {n_params:,} parametri")
 
@@ -199,11 +212,12 @@ def main():
         save_steps=args.save_steps,
         eval_strategy="no",              # disabilitato per default (no eval set)
         save_total_limit=3,
-        fp16=args.fp16 and torch.cuda.is_available(),
-        bf16=False,
-        dataloader_num_workers=0,        # 0 per evitare problemi con SP multiprocess
-        remove_unused_columns=False,     # CRITICO: non rimuovere labels!
-        report_to="none",                # disabilita wandb/tensorboard di default
+        fp16=False,
+        bf16=torch.cuda.is_available(), # Forza BF16 per 5090
+        dataloader_num_workers=16,       # Sfrutta i core dell'EPYC (32 core -> 16 worker è un buon sweet spot)
+        dataloader_pin_memory=True,     # Velocizza trasferimento verso GPU
+        remove_unused_columns=False,
+        report_to="none",
         seed=args.seed,
         load_best_model_at_end=False,
     )
