@@ -120,8 +120,8 @@ def priority_beam_search(
                 # Check for EOS (either ID or decoded character)
                 is_eos = (idx == eos_id)
                 if not is_eos:
-                    piece = tokenizer.IdToPiece(int(idx))
-                    if ';' in piece: # Any piece containing semicolon is an EOS
+                    token_str = tokenizer.convert_ids_to_tokens(int(idx))
+                    if ';' in token_str: # Any piece containing semicolon is an EOS
                         is_eos = True
 
                 if is_eos and good_score:
