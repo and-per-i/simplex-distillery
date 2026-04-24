@@ -48,3 +48,12 @@ class PredicateType(str, Enum):
 
     LENGTH_EQUATION = "lequation"
     ANGLE_EQUATION = "aequation"
+
+    # AlphaGeometry aliases / variants
+    EQUAL_ANGLES_6 = "eqangle6"
+    EQUAL_RATIOS_6 = "eqratio6"
+    EQUAL_RATIOS_3 = "eqratio3"
+    SIMTRI_REFLECT_2 = "simtri2"
+    SIMTRI_STAR = "simtri*"
+    CONTRI_REFLECT_2 = "contri2"
+    CONTRI_STAR = "contri*"

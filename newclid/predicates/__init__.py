@@ -58,6 +58,13 @@ SYMBOLIC_PREDICATES = {
     PredicateType.SIMTRI_REFLECT: SimtriReflect,
     PredicateType.CONTRI_CLOCK: ContriClock,
     PredicateType.CONTRI_REFLECT: ContriReflect,
+    PredicateType.EQUAL_ANGLES_6: EqAngle,
+    PredicateType.EQUAL_RATIOS_6: EqRatio,
+    PredicateType.EQUAL_RATIOS_3: EqRatio,
+    PredicateType.SIMTRI_REFLECT_2: SimtriReflect,
+    PredicateType.SIMTRI_STAR: SimtriClock,  # Fallback to Clock
+    PredicateType.CONTRI_REFLECT_2: ContriReflect,
+    PredicateType.CONTRI_STAR: ContriClock,  # Fallback to Clock
 }
 
 NUMERICAL_PREDICATES = {
