@@ -40,8 +40,8 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
     
     # Test Problems
     test_problems = {
-        "orthocenter": "a b c = triangle a b c; h = orthocenter a b c; ? perp c h a b",
-        "midpoint": "a b c = triangle a b c; d = midpoint a b; e = midpoint a c; ? para d e b c"
+        "orthocenter": "a b c = triangle a b c; h : orthocenter h a b c; ? perp c h a b",
+        "midpoint": "a b c = triangle a b c; d : midpoint d a b; e : midpoint e a c; ? para d e b c"
     }
 
     if problem_name not in test_problems:
