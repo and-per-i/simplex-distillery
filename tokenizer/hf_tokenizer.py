@@ -84,9 +84,14 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
         return self.sp_model.GetPieceSize()
 
     def get_vocab(self) -> Dict[str, int]:
-        vocab = {
-            self.sp_model.IdToPiece(i): i for i in range(self.vocab_size)
-        }
+        vocab = {}
+        for i in range(self.vocab_size):
+            try:
+                piece = self.sp_model.IdToPiece(i)
+                vocab[piece] = i
+            except:
+                # Per token extra (757-1023), usiamo un segnaposto
+                vocab[f"<extra_id_{i}>"] = i
         # Aggiungi i token speciali aggiunti (quelli fuori dall'SP)
         vocab.update(self.added_tokens_encoder)
         return vocab
@@ -107,7 +112,10 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
 
     def _convert_id_to_token(self, index: int) -> str:
         """Converte un ID intero nel suo piece-string."""
-        return self.sp_model.IdToPiece(index)
+        try:
+            return self.sp_model.IdToPiece(index)
+        except:
+            return f"<extra_id_{index}>"
 
     def convert_tokens_to_string(self, tokens: List[str]) -> str:
         """Riconverte una lista di piece-strings in testo (decode)."""
