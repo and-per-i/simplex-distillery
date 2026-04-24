@@ -108,3 +108,55 @@ class TeacherWrapper(nn.Module):
     @property
     def device(self):
         return next(self.wrapped_teacher.parameters()).device
+
+def load_teacher_from_hf(
+    model_name_or_path: str,
+    student_vocab_size: int = 1024,
+    device: str = "cpu",
+    torch_dtype: torch.dtype = torch.float32,
+) -> TeacherWrapper:
+    """
+    Carica il modello Maestro (Teacher).
+    
+    Supporta:
+    1. Nome modello su HuggingFace Hub (es. 'gpt2')
+    2. Path locale a una directory con pytorch_model.bin e config.json
+    3. Path locale direttamente al file .bin (proverà a inferire la config)
+    """
+    from transformers import AutoModelForCausalLM, AutoConfig
+    import os
+
+    print(f"📦 Caricamento Teacher da: {model_name_or_path}...")
+    
+    # Se è un file .bin diretto, proviamo a caricarlo con uno stato dict
+    if os.path.isfile(model_name_or_path) and model_name_or_path.endswith(".bin"):
+        # Qui servirebbe la classe originale. 
+        # Per semplicità assumiamo che sia caricabile tramite AutoModel se c'è una config vicina
+        model_dir = os.path.dirname(model_name_or_path)
+        try:
+            raw_teacher = AutoModelForCausalLM.from_pretrained(
+                model_dir, 
+                torch_dtype=torch_dtype,
+                low_cpu_mem_usage=True
+            )
+        except Exception:
+            # Fallback: carica lo state dict e usa una classe di base (es. GPT2 se compatibile)
+            print("⚠️ Config non trovata, tento caricamento state_dict diretto...")
+            state_dict = torch.load(model_name_or_path, map_location="cpu")
+            # Nota: qui servirebbe conoscere l'architettura esatta.
+            # Se è AlphaGeometry convertito, solitamente segue lo schema GPT-2 o Llama.
+            # In questo contesto, TeacherWrapper gestirà i logit.
+            raise ValueError("Per caricare il maestro è necessaria una directory con config.json")
+    else:
+        # Caricamento standard (Hub o Directory)
+        raw_teacher = AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch_dtype,
+            low_cpu_mem_usage=True
+        )
+
+    raw_teacher.to(device)
+    raw_teacher.eval()
+    
+    # Wrappa il modello per il KDTrainer
+    return TeacherWrapper(raw_teacher, student_vocab_size=student_vocab_size)
