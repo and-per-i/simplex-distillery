@@ -51,7 +51,22 @@ def estrai_modello_finale(checkpoint_path: Path, output_path: Path,
     
     # 1. Carica checkpoint
     logger.info(f"\n📦 Caricamento checkpoint da: {checkpoint_path}")
-    state_dict = torch.load(checkpoint_path, map_location='cpu')
+    
+    # Se è una directory, punta al file pytorch_model.bin
+    actual_checkpoint_path = checkpoint_path / "pytorch_model.bin" if checkpoint_path.is_dir() else checkpoint_path
+    
+    if not actual_checkpoint_path.exists():
+        # Prova a cercare altri nomi comuni se pytorch_model.bin non esiste
+        if checkpoint_path.is_dir():
+            for alt_name in ["model.safetensors", "model.pt", "checkpoint.pt"]:
+                if (checkpoint_path / alt_name).exists():
+                    actual_checkpoint_path = checkpoint_path / alt_name
+                    break
+    
+    if not actual_checkpoint_path.exists():
+        raise FileNotFoundError(f"Checkpoint non trovato: {actual_checkpoint_path}")
+        
+    state_dict = torch.load(actual_checkpoint_path, map_location='cpu')
     
     # Se è un checkpoint HF completo, estrai solo il model state
     if 'model' in state_dict:

@@ -172,7 +172,14 @@ def forgia_studente(teacher_path: Path, output_path: Path,
     
     # Carica Teacher checkpoint
     logger.info(f"\n📦 Caricamento Teacher da: {teacher_path}")
-    teacher_state = torch.load(teacher_path, map_location='cpu')
+    
+    # Se è una directory, punta al file params.sav
+    actual_teacher_path = teacher_path / "params.sav" if teacher_path.is_dir() else teacher_path
+    
+    if not actual_teacher_path.exists():
+        raise FileNotFoundError(f"Checkpoint Teacher non trovato: {actual_teacher_path}")
+        
+    teacher_state = torch.load(actual_teacher_path, map_location='cpu')
     
     # Determina numero di layer
     num_layers = 12  # AlphaGeometry standard
