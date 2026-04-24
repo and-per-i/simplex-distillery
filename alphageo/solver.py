@@ -43,13 +43,9 @@ class LegacyGeometricSolver:
         self.nc_solver.draw_figure(out_file=out_file, jgex_problem=self.jgex_problem)
 
     def get_setup_string(self) -> str:
-        # The LM expects a specific string format. 
-        # JGEXFormulation.__str__ is: setup | aux ? goals
-        # Usually we only want the setup part for the LM prompt.
-        setup_str = "; ".join(str(c) for c in self.jgex_problem.setup_clauses)
-        if self.jgex_problem.auxiliary_clauses:
-            setup_str += " | " + "; ".join(str(c) for c in self.jgex_problem.auxiliary_clauses)
-        return setup_str
+        from newclid.llm_input import problem_to_llm_input
+        # Convertiamo il problema nel formato atomico che il Maestro si aspetta
+        return problem_to_llm_input(self.jgex_problem, aux_tag="aux")
 
     def get_problem_string(self) -> str:
         return str(self.jgex_problem)

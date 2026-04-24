@@ -147,21 +147,23 @@ def run_alphageometry(
                 solver.load_state(proof_state)
                 solver.load_problem_string(pstring)
 
-                logging.info('Trying LM output (score=%f): "%s"', score, lm_out)
-
-                aux_string = try_translate_constrained_to_construct(
-                    lm_out, solver.get_existing_points(), solver.get_defs()
-                )
-                aux_string = solver.validate_clause_txt(aux_string)
-
-                if aux_string.startswith("ERROR:"):
-                    # the construction is invalid.
-                    logging.warning('Could not translate lm output: "%s"\n', aux_string)
+                # Usiamo la logica di Newclid per interpretare l'output ausiliario
+                # Il modello atomico dovrebbe sputare qualcosa come "f = midp a b"
+                try:
+                    from newclid.llm_input import _llm_str_to_clause
+                    # Rimuoviamo eventuali tag o spazi extra
+                    clean_out = lm_out.strip()
+                    if clean_out.startswith("aux "):
+                        clean_out = clean_out[4:]
+                    
+                    # Proviamo a convertire in clausola JGEX
+                    aux_clause = _llm_str_to_clause(clean_out)
+                    solver.jgex_problem.auxiliary_clauses += (aux_clause,)
+                    solver._rebuild_solver()
+                    success = solver.run()
+                except Exception as e:
+                    logging.warning(f"Could not parse atom output '{lm_out}': {e}")
                     continue
-                logging.info('Translation: "%s"\n', aux_string)
-
-                solver.add_auxiliary_construction(aux_string)
-                success = solver.run()
                 if success:
                     if out_folder is not None:
                         solver.write_solution(out_folder / "proof_steps.txt")

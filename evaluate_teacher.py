@@ -3,9 +3,11 @@ import torch
 import logging
 from pathlib import Path
 from tokenizer.hf_tokenizer import load_tokenizer
+from newclid.llm_input import problem_to_llm_input
 from alphageo.alphageometry import get_lm, run_alphageometry
 from newclid import GeometricSolverBuilder
 from newclid.jgex.problem_builder import JGEXProblemBuilder
+from newclid.jgex.formulation import JGEXFormulation, alphabetize
 from alphageo.solver import LegacyGeometricSolver
 
 # Setup logging
@@ -32,38 +34,32 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
         logger.error(f"❌ Errore durante il caricamento: {e}")
         return
 
-    # 2. Configurazione Problema (usiamo un esempio standard)
-    # Se non abbiamo un file di problemi, creiamo un setup manuale per 'orthocenter'
-    # o cerchiamo se esiste un file di default
-    problems_file = "newclid/problems/imo.py" # Solo come riferimento
-    
-    # Per semplicità, usiamo un prompt diretto se JGEXProblemBuilder non trova il file
-    # Ma proviamo a usare la logica di alphageo/__main__.py
-    
-    # Test Problems
+    # 2. Definizione del Problema
     test_problems = {
         "orthocenter": "a b c = triangle a b c; h : orthocenter h a b c; ? perp c h a b",
         "midpoint": "a b c = triangle a b c; d : midpoint d a b; e : midpoint e a c; ? para d e b c"
     }
 
     if problem_name not in test_problems:
-        logger.error(f"Problema {problem_name} non trovato nei test predefiniti.")
+        logger.error(f"❌ Problema {problem_name} non trovato.")
         return
 
     problem_txt = test_problems[problem_name]
-    logger.info(f"📝 Problema: {problem_name}")
-    logger.info(f"🔍 Prompt: {problem_txt}")
+    logger.info(f"📝 Problema Originale: {problem_name}")
 
-    # 3. Setup Solver
+    # 3. Setup Solver e Traduzione Prompt
     try:
-        from newclid.jgex.problem_builder import JGEXProblemBuilder
         jb = JGEXProblemBuilder(rng=42)
-        
-        # Carichiamo il problema e alphabetizziamo per il modello
         jb.with_problem_from_txt(problem_txt, problem_name=problem_name)
-        from newclid.jgex.formulation import alphabetize
+        
+        # Alphabetizziamo per coerenza con il modello
         jb.jgex_problem, _ = alphabetize(jb.jgex_problem)
         
+        # TRADUZIONE: Generiamo il prompt ATOMICO per il modello
+        # Il Maestro si aspetta il formato simbolico di Newclid
+        prompt_atomico = problem_to_llm_input(jb.jgex_problem, aux_tag="aux")
+        logger.info(f"🔍 Prompt Tradotto (Atomico): {prompt_atomico}")
+
         setup = jb.build()
         
         solver_builder = GeometricSolverBuilder(rng=42)
@@ -71,7 +67,6 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
             solver_builder.with_rules_from_file(Path("new_rules.txt"))
             
         nc_solver = solver_builder.build(setup)
-        
         solver = LegacyGeometricSolver(nc_solver, jb.jgex_problem, jb)
         
         logger.info("🧠 Avvio ricerca della prova (Neuro-Symbolic)...")
@@ -80,6 +75,9 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
         out_folder.mkdir(exist_ok=True, parents=True)
 
         with torch.no_grad():
+            # Nota: run_alphageometry prenderà il prompt atomico dal sistema o dovremmo passarlo?
+            # In realtà run_alphageometry usa il solver per rigenerare il prompt ad ogni step.
+            # Dobbiamo assicurarci che run_alphageometry usi la modalità atomica.
             success = run_alphageometry(
                 solver=solver,
                 model=model,
@@ -94,10 +92,8 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
             
         if success:
             logger.info("🎉 SUCCESSO! Il modello ha trovato la soluzione.")
-            # Stampiamo i passi della prova
             print("\n--- SOLUZIONE TROVATA ---")
-            solver.write_solution(None) # Stampa a video se passiamo None in certe versioni, 
-                                        # ma LegacyGeometricSolver.write_solution potrebbe volere un Path
+            solver.write_solution(out_folder / "final_proof.txt")
         else:
             logger.warning("⚠️ Il modello non ha trovato una soluzione nel tempo limite.")
             
