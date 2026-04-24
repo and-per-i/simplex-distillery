@@ -70,6 +70,7 @@ def priority_beam_search(
     batch_size = beam_width  # at each time step, we expand the top beam_width sequences
 
     step = 0
+    max_queue_size = 512 # Prevent queue explosion
     while live_sequences:
         step += 1
         cur_batch = live_sequences[:batch_size]
@@ -83,64 +84,47 @@ def priority_beam_search(
         if (
             finished_sequences
             and len(finished_sequences)
-            >= num_return_sequences  # we have at least as many finished sequences as we want to return
+            >= num_return_sequences
             and cur_batch[0][1]
-            < finished_sequences[-1][
-                1
-            ]  # the current best unfinished sequence is *worse* than the worst finished one.
+            < finished_sequences[-1][1]
         ):
             break
 
-        batch_lens = [
-            item[0].shape[-1] for item in cur_batch
-        ]  # length of each batch sequence; for padding and brevity penalty
+        batch_lens = [item[0].shape[-1] for item in cur_batch]
         max_len = max(batch_lens)
 
-        batch_inp = cat(  # input for model; item[0] is the sequence Tensor (item[1] is current score)
+        batch_inp = cat(
             [pad(item[0], (0, max_len - item[0].shape[-1])) for item in cur_batch]
         )
 
         batch_log_p = model(batch_inp).log_softmax(dim=-1)
 
         for b_idx, (log_p, length) in enumerate(zip(batch_log_p, batch_lens)):
-            cur_inp, cur_score = cur_batch[b_idx]  # input Tensor, current score
+            cur_inp, cur_score = cur_batch[b_idx]
 
-            values, indices = log_p[length - 1].topk(
-                beam_width
-            )  # top beam_width next tokens for input's next position
-            penalty = brevity_penalty(
-                length + 1 - start_len
-            )  # brevity penalty for input's next position
+            values, indices = log_p[length - 1].topk(beam_width)
+            penalty = brevity_penalty(length + 1 - start_len)
 
             for val, idx in zip(values, indices):
-                new_inp = cat([cur_inp, idx.view(1, 1)], dim=-1)  # potential next input
-                new_score = (cur_score) + val.item() / penalty  # potential next score
+                new_inp = cat([cur_inp, idx.view(1, 1)], dim=-1)
+                new_score = (cur_score) + val.item() / penalty
 
                 good_score = (
-                    len(finished_sequences)
-                    < num_return_sequences  # we're still generating anyways
-                    or new_score
-                    > finished_sequences[-1][
-                        1
-                    ]  # new score is *better* than worst finished sequence
+                    len(finished_sequences) < num_return_sequences
+                    or new_score > finished_sequences[-1][1]
                 )
 
                 if idx == eos_id and good_score:
-                    # EOS was generated
                     new_seq = new_inp.flatten().tolist()
                     finished_sequences.append((new_seq, new_score))
                     finished_sequences.sort(key=lambda x: x[1], reverse=True)
-                    finished_sequences = finished_sequences[
-                        :num_return_sequences
-                    ]  # we just want this many return sequences
+                    finished_sequences = finished_sequences[:num_return_sequences]
                 elif good_score:
-                    # we're not done yet but the updated score warrants further genration of this sequence.
-                    if new_inp.shape[-1] - start_len < max_new_tokens:
-                        # also, we're not too long yet
+                    if new_inp.shape[-1] - start_len < 128: # reduced from max_new_tokens
                         live_sequences.append((new_inp, new_score))
         
-        # Sort once per batch expansion instead of per candidate
         live_sequences.sort(key=lambda x: x[1], reverse=True)
+        live_sequences = live_sequences[:max_queue_size] # Keep it focused
 
     return finished_sequences
 
