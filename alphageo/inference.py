@@ -69,13 +69,15 @@ def priority_beam_search(
     start_len = inp.shape[-1]
     batch_size = beam_width  # at each time step, we expand the top beam_width sequences
 
+    step = 0
     while live_sequences:
-        cur_batch = live_sequences[
-            :batch_size
-        ]  # these are the currently most-likely unfinished sequences
-        live_sequences = live_sequences[
-            batch_size:
-        ]  # this is the rest... better luck the next time :)
+        step += 1
+        cur_batch = live_sequences[:batch_size]
+        live_sequences = live_sequences[batch_size:]
+
+        if step % 10 == 0:
+             import logging
+             logging.info(f"[Beam Search] Step {step}: {len(live_sequences)} sequences in queue, {len(finished_sequences)} finished.")
 
         # break condition:
         if (
@@ -136,9 +138,9 @@ def priority_beam_search(
                     if new_inp.shape[-1] - start_len < max_new_tokens:
                         # also, we're not too long yet
                         live_sequences.append((new_inp, new_score))
-                        live_sequences.sort(
-                            key=lambda x: x[1], reverse=True
-                        )  # we use live_sequences as a priority queue, need to keep it sorted
+        
+        # Sort once per batch expansion instead of per candidate
+        live_sequences.sort(key=lambda x: x[1], reverse=True)
 
     return finished_sequences
 
