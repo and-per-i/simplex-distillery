@@ -43,7 +43,7 @@ def brevity_penalty(length, alpha=0.6, numerator_bias=5, denominator_bias=6):
 
 
 def priority_beam_search(
-    model, inp, beam_width=4, num_return_sequences=2, eos_id=263, max_new_tokens=512
+    model, inp, tokenizer, beam_width=4, num_return_sequences=2, eos_id=263, max_new_tokens=512
 ):
     """
     Beam search with a priority queue, designed to be close to AG's beam search at

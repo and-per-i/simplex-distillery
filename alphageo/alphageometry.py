@@ -117,6 +117,7 @@ def run_alphageometry(
             outs = beam_search(
                 model,
                 inp,
+                tokenizer=tokenizer,
                 beam_width=model_beam_width,
                 num_return_sequences=model_num_return_sequences,
             )
