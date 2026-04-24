@@ -76,9 +76,12 @@ def priority_beam_search(
         cur_batch = live_sequences[:batch_size]
         live_sequences = live_sequences[batch_size:]
 
-        if step % 10 == 0:
+        if step % 20 == 0:
              import logging
-             logging.info(f"[Beam Search] Step {step}: {len(live_sequences)} sequences in queue, {len(finished_sequences)} finished.")
+             best_seq = cur_batch[0][0].flatten().tolist()
+             # decode skipping the input tokens
+             decoded = tokenizer.decode(best_seq[start_len:])
+             logging.info(f"[Beam Search] Step {step}: {len(live_sequences)} in queue. Best path so far: '{decoded}'")
 
         # break condition:
         if (
@@ -113,18 +116,25 @@ def priority_beam_search(
                     len(finished_sequences) < num_return_sequences
                     or new_score > finished_sequences[-1][1]
                 )
+                
+                # Check for EOS (either ID or decoded character)
+                is_eos = (idx == eos_id)
+                if not is_eos:
+                    piece = tokenizer.IdToPiece(int(idx))
+                    if ';' in piece: # Any piece containing semicolon is an EOS
+                        is_eos = True
 
-                if idx == eos_id and good_score:
+                if is_eos and good_score:
                     new_seq = new_inp.flatten().tolist()
                     finished_sequences.append((new_seq, new_score))
                     finished_sequences.sort(key=lambda x: x[1], reverse=True)
                     finished_sequences = finished_sequences[:num_return_sequences]
                 elif good_score:
-                    if new_inp.shape[-1] - start_len < 128: # reduced from max_new_tokens
+                    if new_inp.shape[-1] - start_len < 128:
                         live_sequences.append((new_inp, new_score))
         
         live_sequences.sort(key=lambda x: x[1], reverse=True)
-        live_sequences = live_sequences[:max_queue_size] # Keep it focused
+        live_sequences = live_sequences[:max_queue_size]
 
     return finished_sequences
 
