@@ -66,9 +66,7 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
         
         solver_builder = GeometricSolverBuilder(rng=42)
         if os.path.exists("new_rules.txt"):
-            solver_builder.with_rules_from_file("new_rules.txt")
-        if os.path.exists("new_defs.txt"):
-            solver_builder.with_rules_from_file("new_defs.txt")
+            solver_builder.with_rules_from_file(Path("new_rules.txt"))
             
         nc_solver = solver_builder.build(setup)
         
