@@ -1,8 +1,8 @@
 import os
 import torch
 import logging
-from pathlib import Path
-from alphageo.alphageometry import get_lm, get_tokenizer, run_alphageometry
+from tokenizer.hf_tokenizer import load_tokenizer
+from alphageo.alphageometry import get_lm, run_alphageometry
 from newclid import GeometricSolverBuilder
 from newclid.jgex.problem_builder import JGEXProblemBuilder
 from alphageo.solver import LegacyGeometricSolver
@@ -24,8 +24,9 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
     # 1. Caricamento Modello e Tokenizer
     try:
         model = get_lm(Path(ckpt_path), device)
-        tokenizer = get_tokenizer(Path(vocab_path))
-        logger.info("✅ Modello e Tokenizer caricati con successo.")
+        # Usiamo il wrapper HF con vocab_size=1024 per allinearci all'architettura
+        tokenizer = load_tokenizer(vocab_path, vocab_size=1024)
+        logger.info(f"✅ Modello e Tokenizer (Vocab: {tokenizer.vocab_size}) caricati con successo.")
     except Exception as e:
         logger.error(f"❌ Errore durante il caricamento: {e}")
         return
