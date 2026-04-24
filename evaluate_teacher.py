@@ -12,7 +12,13 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", problem_name="orthocenter"):
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+        
     logger.info(f"🚀 Evaluazione Teacher Model su {device.upper()}")
     
     # 1. Caricamento Modello e Tokenizer
@@ -34,8 +40,8 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
     
     # Test Problems
     test_problems = {
-        "orthocenter": "a b c = triangle a b c; h1 = altitude a b c; h2 = altitude b a c; h = intersection h1 h2; ? perpendicular c h a b",
-        "midpoint": "a b c = triangle a b c; d = midpoint a b; e = midpoint a c; ? parallel d e b c"
+        "orthocenter": "a b c = triangle a b c; h = orthocenter a b c; ? perp c h a b",
+        "midpoint": "a b c = triangle a b c; d = midpoint a b; e = midpoint a c; ? para d e b c"
     }
 
     if problem_name not in test_problems:
