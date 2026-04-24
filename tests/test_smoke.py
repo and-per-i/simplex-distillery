@@ -5,7 +5,7 @@ Esegui:
     python tests/test_smoke.py
 
 Verifica:
-    1. Tokenizer caricato correttamente (vocab_size == 757)
+    1. Tokenizer caricato correttamente (vocab_size == 1024)
     2. StudentConfig valido
     3. StudentForCausalLM forward corretto (shape logits, loss)
     4. TeacherWrapper normalizza l'output
@@ -36,7 +36,7 @@ TOKENIZER_PATH = os.path.join(
 def test_tokenizer():
     print("=== 1. Tokenizer ===")
     tok = load_tokenizer(TOKENIZER_PATH)
-    assert tok.vocab_size == 757, f"vocab_size atteso 757, trovato {tok.vocab_size}"
+    assert tok.vocab_size == 1024, f"vocab_size atteso 1024, trovato {tok.vocab_size}"
     ids = tok.encode("a b c coll a b c ;")
     assert len(ids) > 0
     decoded = tok.decode(ids)
@@ -47,7 +47,7 @@ def test_tokenizer():
 def test_student_model(tokenizer):
     print("=== 2. StudentForCausalLM ===")
     config = StudentConfig(
-        vocab_size=757,
+        vocab_size=1024,
         hidden_size=64,
         num_hidden_layers=2,
         num_attention_heads=4,
@@ -57,14 +57,14 @@ def test_student_model(tokenizer):
     model = StudentForCausalLM(config)
     model.eval()
 
-    input_ids = torch.randint(0, 757, (2, 32))
+    input_ids = torch.randint(0, 1024, (2, 32))
     labels = input_ids.clone()
     labels[:, :5] = -100  # simula alcuni token ignorati
 
     with torch.no_grad():
         out = model(input_ids=input_ids, labels=labels)
 
-    assert out.logits.shape == (2, 32, 757), f"Shape errata: {out.logits.shape}"
+    assert out.logits.shape == (2, 32, 1024), f"Shape errata: {out.logits.shape}"
     assert out.loss is not None and out.loss.item() > 0
     print(f"  ✅ logits shape: {out.logits.shape}, loss: {out.loss.item():.4f}")
     return model, config
@@ -72,15 +72,15 @@ def test_student_model(tokenizer):
 def test_teacher_wrapper(config):
     print("=== 3. TeacherWrapper ===")
     teacher_raw = StudentForCausalLM(config)  # usa student come teacher finto
-    teacher = TeacherWrapper(teacher_raw, student_vocab_size=757)
+    teacher = TeacherWrapper(teacher_raw, student_vocab_size=1024)
 
-    input_ids = torch.randint(0, 757, (2, 32))
+    input_ids = torch.randint(0, 1024, (2, 32))
     out = teacher(input_ids=input_ids)
 
     assert hasattr(out, "logits")
-    assert out.logits.shape == (2, 32, 757)
+    assert out.logits.shape == (2, 32, 1024)
     # Verifica che il teacher sia frozen
-    for p in teacher.teacher.parameters():
+    for p in teacher.wrapped_teacher.parameters():
         assert not p.requires_grad, "Teacher ha parametri con requires_grad=True!"
     print(f"  ✅ output shape: {out.logits.shape}, teacher frozen: ✓")
     return teacher
@@ -89,7 +89,7 @@ def test_kd_loss():
     print("=== 4. KnowledgeDistillationLoss ===")
     loss_fn = KnowledgeDistillationLoss(temperature=4.0, alpha=0.5)
 
-    B, S, V = 2, 16, 757
+    B, S, V = 2, 16, 1024
     student_logits = torch.randn(B, S, V)
     teacher_logits = torch.randn(B, S, V)
     labels = torch.randint(0, V, (B, S))

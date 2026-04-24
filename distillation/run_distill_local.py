@@ -26,15 +26,15 @@ def load_local_teacher(ckpt_path, device="cpu"):
     model.eval()
     
     # Wrap it for the trainer
-    # student_vocab_size=757 matches the AlphaGeometry tokenizer
-    wrapper = TeacherWrapper(model, student_vocab_size=757)
+    # student_vocab_size=1024 matches the AlphaGeometry converted model
+    wrapper = TeacherWrapper(model, student_vocab_size=1024)
     return wrapper
 
 # --- 2. Initialize Student ---
 def init_student():
     print("Initializing Student (2-Simplicial Attention)...")
     config = StudentConfig(
-        vocab_size=757,
+        vocab_size=1024,
         hidden_size=256,   # Smaller for local test
         num_hidden_layers=4,
         num_attention_heads=8,

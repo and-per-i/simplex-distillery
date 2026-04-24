@@ -1,4 +1,5 @@
 from alphageo.optional_imports import raise_if_called, raise_if_instanciated
+from alphageo.tokens import GEOMETRY_EOS_ID
 
 
 try:
@@ -43,7 +44,7 @@ def brevity_penalty(length, alpha=0.6, numerator_bias=5, denominator_bias=6):
 
 
 def priority_beam_search(
-    model, inp, tokenizer, beam_width=4, num_return_sequences=2, eos_id=263, max_new_tokens=512
+    model, inp, tokenizer, beam_width=4, num_return_sequences=2, eos_id=GEOMETRY_EOS_ID, max_new_tokens=512
 ):
     """
     Beam search with a priority queue, designed to be close to AG's beam search at
@@ -56,7 +57,7 @@ def priority_beam_search(
         inp: Original input sequence, a LongTensor of shape (1, seq_length).
         beam_width: Search width for beam search. At each step, we take this many potential sequences, and predict the top beam_width tokens for the next timestep for each.
         num_return_sequences: The number of final decoded sequences to be returned (default: 2).
-        eos_id: Token ID for End-of-Sequence; used to stop decoding for a given sequence (default: 263, from AG vocabulary).
+        eos_id: Token ID for End-of-Sequence; used to stop decoding for a given sequence (default: GEOMETRY_EOS_ID=3, semicolon token).
         max_new_tokens: Limit of generation length. If no EOS token is generated within this number of steps, disregard the sequence.
 
     Returns:
@@ -140,7 +141,7 @@ def priority_beam_search(
 
 
 def simple_beam_search(
-    model, inp, beam_width=4, num_return_sequences=2, eos_idx=263, max_tokens=128
+    model, inp, beam_width=4, num_return_sequences=2, eos_idx=GEOMETRY_EOS_ID, max_tokens=128
 ):
     """
     Implementation of a very straight-forward beam search. A bit simpler than priority_beam_search, but not guranteed to generate the same sequences (though it often may).

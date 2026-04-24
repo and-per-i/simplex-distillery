@@ -50,7 +50,7 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
         eos_token: str = "</s>",
         sp_model_kwargs: Optional[Dict] = None,
         add_prefix_space: bool = False,
-        override_vocab_size: Optional[int] = None,
+        override_vocab_size: Optional[int] = 1024,
         **kwargs,
     ):
         self.sp_model_kwargs = sp_model_kwargs or {}
@@ -78,20 +78,29 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
 
     @property
     def vocab_size(self) -> int:
-        """Ritorna la dimensione del vocabolario (757 o override)."""
+        """Ritorna la dimensione del vocabolario (1024 by default, 757 real tokens)."""
         if self.override_vocab_size:
             return self.override_vocab_size
         return self.sp_model.GetPieceSize()
+    
+    @property
+    def semicolon_id(self) -> int:
+        """Token ID per il semicolon (;), usato come EOS marker in geometria."""
+        return 263  # Verificato da pt_ckpt/vocab.model
 
     def get_vocab(self) -> Dict[str, int]:
         vocab = {}
-        for i in range(self.vocab_size):
-            try:
-                piece = self.sp_model.IdToPiece(i)
-                vocab[piece] = i
-            except:
-                # Per token extra (757-1023), usiamo un segnaposto
-                vocab[f"<extra_id_{i}>"] = i
+        sp_size = self.sp_model.GetPieceSize()
+        
+        # Real tokens (0-756)
+        for i in range(min(sp_size, self.vocab_size)):
+            piece = self.sp_model.IdToPiece(i)
+            vocab[piece] = i
+        
+        # Padding tokens (757-1023 se vocab_size=1024)
+        for i in range(sp_size, self.vocab_size):
+            vocab[f"<extra_id_{i}>"] = i
+        
         # Aggiungi i token speciali aggiunti (quelli fuori dall'SP)
         vocab.update(self.added_tokens_encoder)
         return vocab
@@ -169,13 +178,14 @@ class AlphaGeometryHFTokenizer(PreTrainedTokenizer):
 
 def load_tokenizer(
     model_path: str = "tokenizer/weights/geometry.757.model",
-    vocab_size: Optional[int] = None,
+    vocab_size: Optional[int] = 1024,
 ) -> AlphaGeometryHFTokenizer:
     """
     Carica il tokenizer AlphaGeometry in modalità HF-compatible.
 
     Args:
         model_path: percorso assoluto o relativo al file .model SP.
+        vocab_size: dimensione vocabolario (default 1024 per compatibilità con AG convertito).
 
     Returns:
         AlphaGeometryHFTokenizer pronto per essere usato con Trainer.
