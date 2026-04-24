@@ -74,6 +74,9 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
         
         logger.info("🧠 Avvio ricerca della prova (Neuro-Symbolic)...")
         
+        out_folder = Path("./results_eval")
+        out_folder.mkdir(exist_ok=True, parents=True)
+
         with torch.no_grad():
             success = run_alphageometry(
                 solver=solver,
@@ -84,7 +87,7 @@ def evaluate_teacher(ckpt_path="./pt_ckpt", vocab_path="./pt_ckpt/vocab.model", 
                 model_num_return_sequences=2,
                 search_depth=2,
                 beam_size=4,
-                out_folder=Path("./results_eval")
+                out_folder=out_folder
             )
             
         if success:
