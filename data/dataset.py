@@ -24,6 +24,7 @@ from typing import List, Optional, Union
 
 import torch
 import pandas as pd
+import numpy as np
 from torch.utils.data import Dataset
 
 from tokenizer.hf_tokenizer import AlphaGeometryHFTokenizer

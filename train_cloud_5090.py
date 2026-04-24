@@ -465,7 +465,7 @@ def main_training_5090(config: dict):
     # Dataset
     logger.info(f"📚 Caricamento dataset: {config['data_path']}")
     dataset = GeometryDataset(
-        data_path=config['data_path'],
+        sequences=config['data_path'],
         tokenizer=tokenizer,
         max_length=512
     )

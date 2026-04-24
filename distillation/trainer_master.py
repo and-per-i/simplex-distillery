@@ -266,7 +266,7 @@ def run_distillation_master(
     # 4. Carica Dataset
     logger.info(f"📚 Caricamento dataset da: {data_path}")
     dataset = GeometryDataset(
-        data_path=data_path,
+        sequences=data_path,
         tokenizer=tokenizer,
         max_length=512
     )
