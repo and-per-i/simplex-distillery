@@ -292,7 +292,6 @@ def get_5090_training_args(output_dir: str, num_epochs: int = 4) -> TrainingArgu
         
         # Warmup e scheduler
         warmup_steps=500,
-        warmup_ratio=0.05,
         lr_scheduler_type="cosine",  # Cosine annealing per convergenza smooth
         
         # Logging e salvataggio
@@ -315,14 +314,8 @@ def get_5090_training_args(output_dir: str, num_epochs: int = 4) -> TrainingArgu
         
         # Output
         report_to=["tensorboard"],  # Logging su TensorBoard
-        logging_dir=f"{output_dir}/logs",
-        
         # Checkpointing avanzato
-        load_best_model_at_end=True,
-        metric_for_best_model="loss",
-        greater_is_better=False,
-        
-        # Altro
+        load_best_model_at_end=False,
         remove_unused_columns=False,
         disable_tqdm=False,
         
