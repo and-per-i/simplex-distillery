@@ -280,7 +280,6 @@ def get_5090_training_args(output_dir: str, num_epochs: int = 4) -> TrainingArgu
         
         # Ottimizzazioni GPU
         fp16=True,  # Mixed precision training (RTX 5090 ha Tensor Cores)
-        fp16_opt_level="O2",  # Massima ottimizzazione FP16
         gradient_checkpointing=True,  # Risparmia memoria (trade-off: +20% tempo)
         
         # Learning rate e optimizer
