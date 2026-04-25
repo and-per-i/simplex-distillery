@@ -96,8 +96,12 @@ class KDTrainerMaster(Trainer):
             )
             return (loss, student_outputs) if return_outputs else loss
         
-        # Calcola KD Loss
-        loss_dict = self.kd_loss_fn(student_logits, teacher_logits, labels)
+        # Calcola KD Loss (usa kwargs per evitare problemi di ordine)
+        loss_dict = self.kd_loss_fn(
+            student_logits=student_logits,
+            labels=labels,
+            teacher_logits=teacher_logits
+        )
         total_loss = loss_dict['total_loss']
         
         # Log metriche (ogni N step)

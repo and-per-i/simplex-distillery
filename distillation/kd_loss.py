@@ -101,11 +101,16 @@ class KnowledgeDistillationLoss(nn.Module):
         s_logits = student_logits[..., :-1, :][valid_mask] # (N_valid, V)
 
         if teacher_logits is not None:
-            # Caso 1: Logit completi (meno probabile con 2.6M righe)
+            # Caso 1: Logit completi
             t_logits = teacher_logits[..., :-1, :][valid_mask]
             
-            student_soft = F.log_softmax(s_logits / T, dim=-1)
-            teacher_soft = F.softmax(t_logits / T, dim=-1)
+            # Allinea vocab size se diversi (es. teacher=1024, student=384)
+            min_vocab = min(s_logits.shape[-1], t_logits.shape[-1])
+            s_logits_kd = s_logits[..., :min_vocab]
+            t_logits_kd = t_logits[..., :min_vocab]
+            
+            student_soft = F.log_softmax(s_logits_kd / T, dim=-1)
+            teacher_soft = F.softmax(t_logits_kd / T, dim=-1)
             kd_loss = F.kl_div(student_soft, teacher_soft, reduction=self.reduction) * (T**2)
             
         elif teacher_indices is not None and teacher_values is not None:
