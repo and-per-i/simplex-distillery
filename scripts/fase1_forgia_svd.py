@@ -78,46 +78,31 @@ def comprimi_layer_attention(layer_state: dict, layer_idx: int, nuova_dim: int,
                               is_simplicial: bool = False) -> dict:
     """
     Comprime le matrici di attenzione (Q, K, V, O) di un layer.
-    
-    Args:
-        layer_state: State dict del layer
-        layer_idx: Indice del layer (0-indexed)
-        nuova_dim: Dimensione target (es. 384)
-        is_simplicial: Se True, applica Identità Perturbata a K
-    
-    Returns:
-        Dizionario con matrici compresse
     """
     compressed = {}
     
-    # Cerca le chiavi delle matrici di attenzione nel state dict
-    # Pattern tipici: "layers.{i}.attention.q.weight", "transformer{i}.tbase._kvq.queries_layer.weight", etc.
-    
-    for key in layer_state.keys():
-        if 'weight' in key and ('query' in key.lower() or 'queries' in key.lower()):
-            W_Q = layer_state[key]
-            compressed[key] = rimpicciolisci_svd(W_Q, nuova_dim)
-            logger.info(f"  Q: {W_Q.shape} → {compressed[key].shape}")
-        
-        elif 'weight' in key and ('key' in key.lower() or 'keys' in key.lower()):
-            W_K = layer_state[key]
-            compressed[key] = rimpicciolisci_svd(W_K, nuova_dim)
-            logger.info(f"  K: {W_K.shape} → {compressed[key].shape}")
-            
-            # TRUCCO DEL CLONE per layer simpliciali
-            if is_simplicial:
-                key_prime = key.replace('keys', 'keys_prime').replace('key', 'key_prime')
-                compressed[key_prime] = applica_identita_perturbata(compressed[key])
-        
-        elif 'weight' in key and ('value' in key.lower() or 'values' in key.lower()):
-            W_V = layer_state[key]
-            compressed[key] = rimpicciolisci_svd(W_V, nuova_dim)
-            logger.info(f"  V: {W_V.shape} → {compressed[key].shape}")
-        
-        elif 'weight' in key and ('output' in key.lower() or 'out' in key.lower()):
-            W_O = layer_state[key]
-            compressed[key] = rimpicciolisci_svd(W_O, nuova_dim)
-            logger.info(f"  O: {W_O.shape} → {compressed[key].shape}")
+    for key, W in layer_state.items():
+        # Saltiamo scale factors o altri parametri non-weight/bias
+        if 'weight' not in key.lower() and 'bias' not in key.lower():
+            continue
+
+        if any(x in key.lower() for x in ['query', 'queries', 'key', 'keys', 'value', 'values', 'output', 'out']):
+            if W.dim() == 2:
+                # Matrice 2D: SVD
+                compressed[key] = rimpicciolisci_svd(W, nuova_dim)
+                logger.info(f"  {key}: {W.shape} → {compressed[key].shape}")
+                
+                # TRUCCO DEL CLONE per layer simpliciali
+                if is_simplicial and any(x in key.lower() for x in ['key', 'keys']):
+                    key_prime = key.replace('keys', 'keys_prime').replace('key', 'key_prime')
+                    compressed[key_prime] = applica_identita_perturbata(compressed[key])
+            elif W.dim() == 1:
+                # Vettore 1D (bias): Troncamento
+                compressed[key] = W[:nuova_dim]
+                logger.info(f"  {key} (bias): {W.shape} → {compressed[key].shape}")
+            else:
+                # Altro: copia speculare
+                compressed[key] = W
     
     return compressed
 
@@ -125,32 +110,64 @@ def comprimi_layer_attention(layer_state: dict, layer_idx: int, nuova_dim: int,
 def comprimi_layer_mlp(layer_state: dict, layer_idx: int, nuova_dim: int) -> dict:
     """
     Comprime le matrici MLP (feed-forward) di un layer.
-    
-    Args:
-        layer_state: State dict del layer
-        layer_idx: Indice del layer
-        nuova_dim: Dimensione target
-    
-    Returns:
-        Dizionario con matrici MLP compresse
     """
     compressed = {}
     
-    for key in layer_state.keys():
-        if 'weight' in key and ('mlp' in key.lower() or 'ffn' in key.lower()):
-            W = layer_state[key]
+    for key, W in layer_state.items():
+        if 'mlp' in key.lower() or 'ffn' in key.lower():
+            # Evitiamo di processare i layernorm qui, se possibile (verranno gestiti dopo)
+            if 'layernorm' in key.lower() or 'ln' in key.lower():
+                continue
+
+            if W.dim() == 2:
+                # MLP di solito ha dim nascosta 4x (es. 768 → 3072)
+                # Dobbiamo capire se è il primo layer (espansione) o il secondo (contrazione)
+                if W.shape[0] > W.shape[1]:  # Espansione: (Hidden*4, Hidden)
+                    target_dim_out = nuova_dim * 4
+                    target_dim_in = nuova_dim
+                    # rimpicciolisci_svd ridimensiona matrice quadrata o taglia
+                    # Per matrici rettangolari dobbiamo stare attenti
+                    compressed[key] = rimpicciolisci_svd_rect(W, target_dim_out, target_dim_in)
+                else:  # Contrazione: (Hidden, Hidden*4)
+                    target_dim_out = nuova_dim
+                    target_dim_in = nuova_dim * 4
+                    compressed[key] = rimpicciolisci_svd_rect(W, target_dim_out, target_dim_in)
+                
+                logger.info(f"  MLP: {W.shape} → {compressed[key].shape}")
             
-            # MLP di solito ha dim nascosta 4x (es. 768 → 3072)
-            # La comprimiamo proporzionalmente (384 → 1536)
-            if W.shape[0] > W.shape[1]:  # Hidden layer
-                target_dim = nuova_dim * 4
-                compressed[key] = rimpicciolisci_svd(W, target_dim)
-            else:  # Output layer
-                compressed[key] = rimpicciolisci_svd(W, nuova_dim)
-            
-            logger.info(f"  MLP: {W.shape} → {compressed[key].shape}")
+            elif W.dim() == 1:
+                # Bias MLP
+                if W.shape[0] > nuova_dim * 2:  # Probabilmente bias del layer espanso
+                    compressed[key] = W[:nuova_dim * 4]
+                else:
+                    compressed[key] = W[:nuova_dim]
+                logger.info(f"  MLP bias: {W.shape} → {compressed[key].shape}")
     
     return compressed
+
+
+def rimpicciolisci_svd_rect(matrice: torch.Tensor, target_out: int, target_in: int) -> torch.Tensor:
+    """SVD per matrici rettangolari."""
+    original_dtype = matrice.dtype
+    original_device = matrice.device
+    
+    matrice_fp32 = matrice.to(torch.float32).cpu()
+    U, S, Vh = torch.linalg.svd(matrice_fp32, full_matrices=False)
+    
+    # K è il numero di componenti da tenere (il minimo tra i due target)
+    k = min(target_out, target_in, S.shape[0])
+    
+    U_comp = U[:, :k]
+    S_comp = S[:k]
+    Vh_comp = Vh[:k, :]
+    
+    res = U_comp @ torch.diag(S_comp) @ Vh_comp
+    # Ritaglia/Pad alle dimensioni esatte richieste
+    final = torch.zeros((target_out, target_in), dtype=torch.float32)
+    h, w = min(res.shape[0], target_out), min(res.shape[1], target_in)
+    final[:h, :w] = res[:h, :w]
+    
+    return final.to(original_dtype).to(original_device)
 
 
 def forgia_studente(teacher_path: Path, output_path: Path, 
