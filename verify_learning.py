@@ -51,13 +51,38 @@ def load_latest_checkpoint(device):
 
     model.load_state_dict(state_dict)
 
-    # Attiva il pruning coerente con l'epoca corrente (siamo a ~2.3)
-    model.layers[1].is_bypassed = True  # Layer 2
-    model.layers[9].is_bypassed = True  # Layer 10
+    # Inferisci l'epoca corrente dal trainer_state.json
+    # e applica il bypass corretto in base al pruning schedule
+    pruning_schedule = {
+        2: [1, 9],   # Epoch 2: bypass layer 2, 10 (0-indexed: 1, 9)
+        3: [2, 8],   # Epoch 3: bypass layer 3, 9
+        4: [4, 6],   # Epoch 4: bypass layer 5, 7
+    }
+
+    import json
+    trainer_state_path = Path(latest_ckpt) / "trainer_state.json"
+    current_epoch = 0
+    if trainer_state_path.exists():
+        with open(trainer_state_path) as f:
+            state = json.load(f)
+        current_epoch = int(state.get("epoch", 0))
+        print(f"   Epoca rilevata: {state.get('epoch', '?'):.2f}")
+
+    # Applica bypass cumulativo per tutte le epoche già completate
+    bypassed = []
+    for epoch in range(2, current_epoch + 1):
+        if epoch in pruning_schedule:
+            for layer_idx in pruning_schedule[epoch]:
+                model.layers[layer_idx].is_bypassed = True
+                bypassed.append(layer_idx + 1)  # +1 per human-readable
+
+    active = [i+1 for i, l in enumerate(model.layers) if not l.is_bypassed]
+    print(f"✅ Modello caricato")
+    print(f"   Layer attivi ({len(active)}): {active}")
+    print(f"   Layer bypassed ({len(bypassed)}): {sorted(bypassed)}")
 
     model.to(device)
     model.eval()
-    print("✅ Modello caricato (Layer 2 e 10 bypassed)")
     return model
 
 
