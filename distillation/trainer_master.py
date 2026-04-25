@@ -286,7 +286,7 @@ def run_distillation_master(
         logging_steps=50,
         save_steps=500,
         save_total_limit=3,
-        evaluation_strategy="no",  # No eval durante training per speed
+        eval_strategy="no",  # No eval durante training per speed
         fp16=False,  # Disabilita FP16 per MPS compatibility
         dataloader_num_workers=0,  # Evita problemi su MacOS
         remove_unused_columns=False,

@@ -302,7 +302,7 @@ def get_5090_training_args(output_dir: str, num_epochs: int = 4) -> TrainingArgu
         save_total_limit=5,  # Mantieni solo ultimi 5 checkpoint
         
         # Evaluation (opzionale)
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=500,
         
         # Performance
