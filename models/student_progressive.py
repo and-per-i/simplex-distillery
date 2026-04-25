@@ -216,7 +216,7 @@ class StudentModelProgressive(nn.Module):
             torch.nn.init.ones_(module.weight)
             torch.nn.init.zeros_(module.bias)
     
-    def forward(self, input_ids: torch.Tensor, labels: Optional[torch.Tensor] = None):
+    def forward(self, input_ids: torch.Tensor, labels: Optional[torch.Tensor] = None, **kwargs):
         """
         Forward pass completo.
         
