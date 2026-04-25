@@ -2,19 +2,25 @@
 Fine-Tuning Post-Distillazione con Tokenizzazione Corretta
 ===========================================================
 
-Carica il modello Davide distillato (4 epoche KD) e lo affina
-su un dataset preprocessato con formato pulito, usando LR bassa
-per preservare la conoscenza strutturale acquisita.
+Carica il modello Davide già estratto dalla Fase 4 (modello compatto
+a ~6 layer attivi) e lo affina su un dataset preprocessato con formato
+pulito, usando LR bassa per preservare la conoscenza strutturale acquisita.
+
+IMPORTANTE: Eseguire DOPO la Fase 4 (Estrazione Fisica).
+  - I layer bypassed dal Progressive Pruning sono già stati rimossi
+  - Il fine-tuning mantiene la struttura compatta risultante
+  - NON si re-abilitano layer bypassed (contraddirebbe il pruning)
 
 Prerequisiti:
     1. Training KD completato → runs/distill_5090/pytorch_model.bin
-    2. Dataset preprocessato → python preprocess_dataset.py \
+    2. Fase 4 completata → checkpoints/studente_finale.pt
+    3. Dataset preprocessato → python preprocess_dataset.py \
            --input data/parquets/<nuovo_dataset>.parquet \
            --output data/parquets/finetune_clean.parquet
 
 Usage:
     python finetune_clean.py \
-        --model_path runs/distill_5090/pytorch_model.bin \
+        --model_path checkpoints/studente_finale.pt \
         --data_path data/parquets/finetune_clean.parquet \
         --output_dir runs/finetune_clean \
         --num_epochs 2
@@ -47,8 +53,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_distilled_model(model_path: str, device: str) -> StudentModelProgressive:
-    """Carica il modello distillato con architettura corretta."""
+def load_extracted_model(model_path: str, device: str) -> StudentModelProgressive:
+    """
+    Carica il modello estratto dalla Fase 4 (modello compatto).
+    
+    NON re-abilita i layer bypassed: il Progressive Pruning ha già
+    identificato quali layer sono ridondanti. Il fine-tuning lavora
+    sul modello nella sua forma compatta finale.
+    """
     model = StudentModelProgressive(
         vocab_size=1024,
         dim_hidden=384,
@@ -58,7 +70,6 @@ def load_distilled_model(model_path: str, device: str) -> StudentModelProgressiv
 
     model_path = Path(model_path)
 
-    # Supporta sia directory (checkpoint HF) che file .bin diretto
     if model_path.is_dir():
         bin_path = model_path / "pytorch_model.bin"
         safetensors_path = model_path / "model.safetensors"
@@ -76,14 +87,11 @@ def load_distilled_model(model_path: str, device: str) -> StudentModelProgressiv
     model.load_state_dict(state_dict)
     logger.info(f"✅ Pesi caricati da: {model_path}")
 
-    # IMPORTANTE: Al termine della distillazione, i layer 2,10,3,9,5,7
-    # erano bypassed. Per il fine-tuning RE-ABILITIAMO tutti i layer
-    # in modo che il modello apprenda con tutti i pesi.
-    # Il pruning ha già "selezionato" i layer importanti durante KD.
-    for i, layer in enumerate(model.layers):
-        if layer.is_bypassed:
-            layer.is_bypassed = False
-            logger.info(f"  🔓 Layer {i+1} re-abilitato per fine-tuning")
+    # Mostra stato dei layer (non modificarli: rispettiamo il pruning)
+    bypassed = [i+1 for i, l in enumerate(model.layers) if l.is_bypassed]
+    active = [i+1 for i, l in enumerate(model.layers) if not l.is_bypassed]
+    logger.info(f"   Layer attivi:   {active}")
+    logger.info(f"   Layer bypassed: {bypassed} (mantenuti spenti)")
 
     model.to(device)
     return model
@@ -190,8 +198,8 @@ def main():
     logger.info(f"✅ Tokenizer: vocab_size={tokenizer.vocab_size}")
 
     # Modello distillato
-    logger.info(f"\n📦 Caricamento modello distillato...")
-    model = load_distilled_model(args.model_path, device)
+    logger.info(f"\n📦 Caricamento modello estratto dalla Fase 4...")
+    model = load_extracted_model(args.model_path, device)
     total_params = sum(p.numel() for p in model.parameters())
     logger.info(f"✅ Modello: {total_params/1e6:.2f}M parametri")
 
