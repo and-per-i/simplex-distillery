@@ -69,7 +69,7 @@ class KDTrainerMaster(Trainer):
                 param.requires_grad = False
             self.teacher.eval()
     
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None, **kwargs):
         """
         Calcola loss combinato: CE loss + KD loss.
         
