@@ -83,31 +83,32 @@ class GeometryDataset(Dataset):
         if not os.path.exists(path):
             raise FileNotFoundError(f"Dataset file non trovato: {path}")
         
-        # Se è un file Parquet (es. dataset1)
-        if path.endswith(".parquet") or "dataset" in path:
+        # 1. Prova come Parquet
+        if path.endswith(".parquet") or "parquet" in path:
             try:
                 print(f"📦 Caricamento Parquet: {path}...")
                 df = pd.read_parquet(path)
                 
-                # Se siamo in modalità distillazione, cerchiamo le colonne dei logit
                 if self.is_distillation and "top_k_indices" in df.columns:
                     print("✨ Trovati logit del Teacher nel Parquet!")
                     self.teacher_indices = df["top_k_indices"].tolist()
                     self.teacher_values = df["top_k_values"].tolist()
 
-                # Combina question e solution con uno spazio
+                # Combina question e solution
                 self.samples = (df["question"] + " " + df["solution"]).tolist()
                 print(f"✅ Parquet caricato: {len(self.samples)} campioni")
+                return self.samples
             except Exception as e:
-                print(f"⚠️ Errore lettura Parquet, provo come testo: {e}")
-                with open(path, "r", encoding="utf-8") as f:
-                    self.samples = [line.strip() for line in f if line.strip()]
+                print(f"⚠️ Errore lettura Parquet: {e}. Provo come file di testo...")
 
-        # Fallback al file di testo (.txt)
-        with open(path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip()]
-        print(f"📂 Caricato da file di testo: {path} → {len(lines)} righe")
-        return lines
+        # 2. Fallback: File di testo (.txt)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.samples = [line.strip() for line in f if line.strip()]
+            print(f"📂 Caricato da file di testo: {path} → {len(self.samples)} righe")
+            return self.samples
+        except Exception as e:
+            raise RuntimeError(f"Impossibile caricare il dataset da {path}: {e}")
 
     def __len__(self) -> int:
         return len(self.samples)
